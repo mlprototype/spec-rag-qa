@@ -1,0 +1,7 @@
+faiss-cpu==1.8.0
+sentence-transformers==3.0.1
+numpy==1.26.4
+python-dotenv==1.0.1
+httpx==0.27.2
+# OpenAIがある場合だけ使う（キー無しでも動作はする）
+openai==1.40.0
