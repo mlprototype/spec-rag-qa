@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .chunking import simple_char_chunks
+from .chunking import markdown_header_chunks, simple_char_chunks
 from .config import cfg
 from .embedder import Embedder
 from .vectorstore import VectorStore
@@ -29,12 +29,25 @@ def main() -> None:
 
     embedder = Embedder()
     all_chunks = []
+
     for doc_id, text in docs:
-        all_chunks.extend(
-            simple_char_chunks(doc_id, text, cfg.chunk_size, cfg.chunk_overlap)
-        )
+        # doc_id は文字列なので、末尾チェックで判定するのが確実です
+        if doc_id.lower().endswith(".md"):
+            print(f"Chunking Markdown: {doc_id}")
+            all_chunks.extend(markdown_header_chunks(doc_id, text))
+        else:
+            # .txt などの場合は従来の文字数分割（設定値を使用）
+            print(f"Chunking Text: {doc_id}")
+            all_chunks.extend(
+                simple_char_chunks(doc_id, text, cfg.chunk_size, cfg.chunk_overlap)
+            )
 
     texts = [c.text for c in all_chunks]
+    # データが空の場合のエラーハンドリング（念のため）
+    if not texts:
+        print("No chunks generated. Check your docs.")
+        return
+
     embs = embedder.embed_texts(texts)
 
     vs = VectorStore(dim=embs.shape[1])

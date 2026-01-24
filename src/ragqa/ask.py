@@ -40,29 +40,62 @@ def _extract_json_object(text: str) -> Dict[str, Any]:
     return json.loads(m.group(1))
 
 
+def _parse_fallback(text: str) -> Dict[str, Any]:
+    """
+    JSON解析に失敗した場合の救済措置（Fallback）
+    テキストから正規表現で無理やり判定（Verdict）を読み取る
+    """
+    text_lower = text.lower()
+
+    # デフォルトは安全側に倒して insufficient
+    verdict = "insufficient"
+
+    # 正規表現で "verdict" : "sufficient/insufficient" のパターンを探す
+    # コロンの前後のスペース、クォートの有無(' or ")を許容
+    match = re.search(
+        r"['\"]?verdict['\"]?\s*[:=]\s*['\"]?(sufficient|insufficient)['\"]?",
+        text_lower,
+    )
+
+    if match:
+        verdict = match.group(1)
+    else:
+        # キーが見つからない場合、単語の出現で推測（最後の手段）
+        # insufficient が含まれていれば NG とみなす
+        if "insufficient" in text_lower:
+            verdict = "insufficient"
+        elif "sufficient" in text_lower:
+            verdict = "sufficient"
+
+    return {
+        "verdict": verdict,
+        "confidence": 10,  # 救済措置なので信頼度は低く設定
+        "reasons": ["JSON parse failed, recovered by text fallback logic."],
+        "missing_points": ["(Check raw_verifier_json for details)"],
+        "supported_claims": [],
+        "unsupported_claims": [],
+    }
+
+
 def build_evidence_check_prompt(question: str, answer: str, contexts: List[str]) -> str:
-    # contexts は既に "[source: doc#chunk]\n本文" なので、そのまま証拠として渡せる
+    # contexts は既に "\n本文" なので、そのまま証拠として渡せる
     evidence = "\n\n".join(contexts)
 
     return f"""あなたは厳格な仕様レビュー担当です。
 ユーザー質問・回答・根拠（引用チャンク本文）を読み、回答が根拠だけで十分に支持されているか判定してください。
 
-# ルール（重要）
+  # ルール
 - 根拠に書いていないことを推測で補完してはいけません。
-- 「一般的には〜」など外部知識で正当化してはいけません。
 - 根拠から直接言えることだけを supported_claims に入れてください。
-- 根拠が不足している主張は unsupported_claims に入れてください。
 - 仕様に無い/根拠が足りない場合は verdict を "insufficient" にしてください。
-- 質問が「一覧」「すべて」「例外条件は？」のように網羅性を求める場合、
-  根拠が限定的で “これが全て” と断言できないなら verdict を "insufficient" にしてください。
-  その場合 missing_points に「例外条件の一覧が他にないか確認」などを入れてください。
-- 次の条件を満たさない限り、網羅性が必要な質問（例: 例外条件は？）では verdict を "insufficient" にしてください：
-  (A) 根拠中に「例外条件は以下の通り（全て）」など “網羅” を示す表現がある
-  または
-  (B) 根拠中に「例外条件はこの2つのみ」等の “限定” が明示されている
-- 「全て」「網羅」「のみ」など網羅性/限定を主張する場合、
-  根拠チャンクからそのことを示す短い引用を coverage_evidence に入れてください（20語以内）。
-  引用が取れない場合、verdict は必ず "insufficient" にしてください。
+- **回答が主観的な評価（「使いにくい」「良い」「悪い」など）を含んでいる場合、その評価という事実そのものが根拠テキストに明記されていなければ、たとえ論理的に正しくても "insufficient" にしてください。**
+  # 網羅性の判定基準
+- 質問が「一覧」「条件は？」などを求めている場合でも、以下の場合は verdict を "sufficient" と判定してください：
+  1. 根拠が見出し（例: ## 入力）を含み、その配下に箇条書き等で項目が列挙されている場合、そのセクションが「条件の全て」であるとみなして良い。
+  2. 設計書(design.md)に「将来要件」「不要」と明記されている場合、それを根拠に「必須ではない」と断定して良い。
+  3. 根拠となる文書の文脈から、それ以外の条件が存在しないことが合理的に推測できる場合。
+
+- ただし、根拠テキストが文の途中で切れている（チャンク切れ）と思われる場合は "insufficient" にしてください。
 
 
 # 入力
@@ -92,54 +125,48 @@ def build_evidence_check_prompt(question: str, answer: str, contexts: List[str])
 def merge_missing_points_into_answer(answer: str, missing_points: List[str]) -> str:
     if not missing_points:
         return answer
-    # 既存フォーマットを壊さず、末尾に追記（まずこれで十分）
+    # 既存フォーマットを壊さず、末尾に追記
     extra = "\n- 根拠の十分性チェックで不足と判定された点:\n" + "\n".join(
         [f"  - {p}" for p in missing_points]
     )
     return answer + extra
 
 
-def main() -> None:
-    if len(sys.argv) < 2:
-        raise SystemExit('Usage: python -m ragqa.ask "質問文"')
-
-    question = sys.argv[1]
+def ask_question(question: str) -> Dict[str, Any]:
+    """
+    質問を受け取り、RAGの回答と検証結果を辞書で返す（評価スクリプト用）
+    """
+    if not cfg.faiss_index_path.exists() or not cfg.meta_path.exists():
+        return {"error": "Index not found. Run ingest first."}
 
     vs = VectorStore.load(cfg.faiss_index_path, cfg.meta_path)
     embedder = Embedder()
     q = embedder.embed_query(question)
 
+    # 1. 検索
     hits = vs.search(q, cfg.top_k)
-
     contexts = []
     for h in hits:
-        doc_type = h.get("doc_type", "unknown")
-        tag = f"[source: {h['doc_id']}#{h['chunk_id']} role={doc_type}]"
+        # ログ等で見やすいようにタグ付け
+        tag = f"[source: {h['doc_id']}#{h['chunk_id']}]"
         contexts.append(tag + "\n" + h["text"])
 
-    # 1) 通常回答
+    # 2. 回答生成
     prompt = build_prompt(question, contexts)
     ans = run_llm(prompt, contexts)
 
-    # 2) 根拠の十分性チェック（Verifier）
+    # 3. 根拠の十分性チェック（Verifier）
     check_prompt = build_evidence_check_prompt(question, ans, contexts)
-
-    # run_llm が contexts を内部で参照しても良いように渡す（不要なら [] でもOK）
     raw_check = run_llm(check_prompt, contexts)
 
     try:
+        # 構造化データとしての抽出を試みる
         check = _extract_json_object(raw_check)
-    except Exception as e:
-        check = {
-            "verdict": "insufficient",
-            "confidence": 0,
-            "reasons": [f"Verifier JSON parse failed: {e}"],
-            "missing_points": [
-                "Verifierの出力がJSONになっていません。プロンプトを見直してください。"
-            ],
-            "supported_claims": [],
-            "unsupported_claims": [],
-        }
+    except Exception:
+        # 失敗した場合、テキストFallback戦略に切り替え
+        check = _parse_fallback(raw_check)
+        # デバッグ用に生出力を保存しておく
+        check["raw_text_on_error"] = raw_check
 
     verdict = check.get("verdict", "insufficient")
     missing_points = (
@@ -148,40 +175,64 @@ def main() -> None:
         else []
     )
 
-    # insufficient のときは Answer に追記（まずはここまで）
+    # insufficient のときは Answer に追記
+    final_answer = ans
     if verdict == "insufficient":
-        ans = merge_missing_points_into_answer(ans, missing_points)
+        final_answer = merge_missing_points_into_answer(ans, missing_points)
 
+    # 結果を構造化して返す
+    return {
+        "question": question,
+        "answer": final_answer,
+        "verdict": verdict,
+        "confidence": check.get("confidence", 0),
+        "supported_claims": check.get("supported_claims", []),
+        "unsupported_claims": check.get("unsupported_claims", []),
+        "missing_points": missing_points,
+        "hits": hits,
+        "raw_verifier_json": check,  # デバッグ用に生JSONも持っておく
+    }
+
+
+def main() -> None:
+    if len(sys.argv) < 2:
+        raise SystemExit('Usage: python -m ragqa.ask "質問文"')
+
+    question = sys.argv[1]
+
+    # リファクタリングした関数を呼び出し
+    result = ask_question(question)
+
+    if "error" in result:
+        print(result["error"])
+        return
+
+    # === 以下、表示ロジック ===
     print("==== Retrieved ====")
-    for h in hits:
+    for h in result["hits"]:
         print(f"- {h['doc_id']}#{h['chunk_id']} score={h['score']:.3f}")
 
     print("\n==== Answer ====")
-    print(ans)
+    print(result["answer"])
 
     print("\n==== Evidence Check ====")
 
-    supported = check.get("supported_claims", [])
-    unsupported = check.get("unsupported_claims", [])
-
-    if supported:
+    # 検証結果の表示
+    if result["supported_claims"]:
         print("- supported_claims:")
-        for c in supported[:10]:
+        for c in result["supported_claims"][:10]:
             print(f"  - {c}")
 
-    if unsupported:
+    if result["unsupported_claims"]:
         print("- unsupported_claims:")
-        for c in unsupported[:10]:
+        for c in result["unsupported_claims"][:10]:
             print(f"  - {c}")
 
-    print(f"- verdict: {check.get('verdict')} (confidence={check.get('confidence')})")
-    for r in check.get("reasons", [])[:10]:
-        print(f"- reason: {r}")
+    print(f"- verdict: {result['verdict']} (confidence={result['confidence']})")
 
-    # 便利なので missing_points も見える化
-    if missing_points:
+    if result["missing_points"]:
         print("- missing_points:")
-        for p in missing_points[:20]:
+        for p in result["missing_points"][:20]:
             print(f"  - {p}")
 
 

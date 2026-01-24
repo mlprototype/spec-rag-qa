@@ -1,0 +1,71 @@
+{
+  "score": 80.0,
+  "duration_seconds": 40.42102575302124,
+  "total": 5,
+  "passed": 4,
+  "failed": 1,
+  "details": [
+    {
+      "id": "qa-001",
+      "question": "パスワードの必須条件を教えて",
+      "type": "explicit",
+      "pass": true,
+      "details": {
+        "fail_reasons": [],
+        "expected_verdict": "sufficient",
+        "actual_verdict": "sufficient",
+        "actual_answer": "- 結論: パスワードは8文字以上である必要があります。\n- 根拠: [source: sample_spec.md#0] に「password（8文字以上）」と記載されています。また、[source: sample_design.md#0] にも「password: 8文字以上」との記述があります。\n- 不明点・確認事項: 現時点では、英数字混在の要件は将来の要件として記載されているため、現時点では必須条件には含まれていません。"
+      }
+    },
+    {
+      "id": "qa-002",
+      "question": "登録済みのメールアドレスを使用した時のエラーコードは？",
+      "type": "explicit",
+      "pass": true,
+      "details": {
+        "fail_reasons": [],
+        "expected_verdict": "sufficient",
+        "actual_verdict": "sufficient",
+        "actual_answer": "- 結論: 登録済みのメールアドレスを使用した場合のエラーコードは409です。\n- 根拠: 「email が既に登録済みの場合：409エラー」と記載されている（source: sample_spec.md#0）。\n- 不明点・確認事項: なし。"
+      }
+    },
+    {
+      "id": "qa-003",
+      "question": "退会したユーザーのデータ保持期間はどのくらい？",
+      "type": "undefined",
+      "pass": true,
+      "details": {
+        "fail_reasons": [],
+        "expected_verdict": "insufficient",
+        "actual_verdict": "insufficient",
+        "actual_answer": "- 結論：不明\n- 根拠：退会したユーザーのデータ保持期間に関する記載は、いずれの資料にも存在しないため。\n- 不明点・確認事項：退会したユーザーのデータ保持期間についての具体的な情報が必要です。\n- 根拠の十分性チェックで不足と判定された点:\n  - 退会したユーザーのデータ保持期間に関する具体的な情報が必要であることが明記されているが、その情報が根拠に存在しない。"
+      }
+    },
+    {
+      "id": "qa-004",
+      "question": "パスワードに英数字の混在は必須ですか？",
+      "type": "cross_doc",
+      "pass": true,
+      "details": {
+        "fail_reasons": [],
+        "expected_verdict": "sufficient",
+        "actual_verdict": "sufficient",
+        "actual_answer": "- 結論: パスワードに英数字の混在は必須ではない。\n- 根拠: 仕様書には「password（8文字以上）」と記載されているが、英数字混在については設計書に「将来要件」として記載されているため、現時点では必須ではない（source: sample_spec.md#0, sample_design.md#0）。\n- 不明点・確認事項: 現在の要件において英数字混在が必須かどうかの明確な定義はないため、将来の要件に関する詳細が必要。"
+      }
+    },
+    {
+      "id": "qa-005",
+      "question": "この仕様はユーザーにとって使いやすいですか？",
+      "type": "non_judgmental",
+      "pass": false,
+      "details": {
+        "fail_reasons": [
+          "Missing keywords: ['判断できない']"
+        ],
+        "expected_verdict": "insufficient",
+        "actual_verdict": "insufficient",
+        "actual_answer": "仕様書にはユーザーにとって使いやすいかどうかに関する記載がないため、判断できません。\n\n根拠: 仕様書には「使いやすい」という評価に関する記載がありません。\n\n不明点・確認事項: 仕様書にユーザーの使いやすさに関する具体的な評価基準やフィードバックが含まれていないため、詳細な判断はできません。\n- 根拠の十分性チェックで不足と判定された点:\n  - ユーザーにとって使いやすいかどうかの評価基準やフィードバックが不足している。"
+      }
+    }
+  ]
+}

@@ -20,7 +20,7 @@ class Config:
     top_k: int = 5
 
     openai_api_key: str | None = os.getenv("OPENAI_API_KEY") or None
-    openai_model: str = os.getenv("OPENAI_MODEL") or "gpt-4o-mini"
+    openai_model: str = os.getenv("OPENAI_MODEL") or "gpt-3.5-turbo"
 
 
 cfg = Config()
