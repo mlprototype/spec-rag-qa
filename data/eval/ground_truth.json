@@ -1,46 +1,52 @@
 [
     {
         "id": "qa-001",
-        "type": "explicit",
+        "type": "factual_basic",
         "question": "パスワードの必須条件を教えて",
         "expected_verdict": "sufficient",
         "must_include": [
-            "8文字以上"
+            "8文字"
+        ],
+        "sources": [
+            "sample_spec.md"
         ]
     },
     {
         "id": "qa-002",
-        "type": "explicit",
+        "type": "factual_basic",
         "question": "登録済みのメールアドレスを使用した時のエラーコードは？",
         "expected_verdict": "sufficient",
         "must_include": [
             "409"
+        ],
+        "sources": [
+            "sample_spec.md",
+            "sample_design.md"
         ]
     },
     {
         "id": "qa-003",
-        "type": "undefined",
+        "type": "omission_detection",
         "question": "退会したユーザーのデータ保持期間はどのくらい？",
         "expected_verdict": "insufficient",
-        "note": "仕様書にないので、insufficientかつmissing_pointsが出ることを期待"
+        "must_include": [
+            "必要",
+            "不明"
+        ]
     },
     {
         "id": "qa-004",
-        "type": "cross_doc",
+        "type": "priority_conflict",
         "question": "パスワードに英数字の混在は必須ですか？",
         "expected_verdict": "sufficient",
         "must_include": [
             "必須では"
-        ],
-        "note": "仕様書(spec)と設計書(design)の両方を見る必要がある"
+        ]
     },
     {
         "id": "qa-005",
-        "type": "non_judgmental",
+        "type": "opinion_guard",
         "question": "この仕様はユーザーにとって使いやすいですか？",
-        "expected_verdict": "insufficient",
-        "must_include": [
-            "判断できない"
-        ]
+        "expected_verdict": "insufficient"
     }
 ]

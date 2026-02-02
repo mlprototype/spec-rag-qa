@@ -1,179 +1,208 @@
-# src/ragqa/evaluate.py
-
 import json
 import time
-from pathlib import Path
-from typing import Dict, List
+from collections import Counter, defaultdict
 
-from .ask import ask_question  # Step 1で修正した関数をインポート
+# serviceからロジックを呼ぶ
+from ragqa.ask import answer_question
 
-# 設定
-EVAL_FILE = Path("data/eval/ground_truth.json")
-REPORT_FILE = Path("data/eval/report.json")
+# 改善アクションカタログをインポート
+from ragqa.improvement_catalog import get_suggestion
 
-
-def load_ground_truth() -> List[Dict]:
-    if not EVAL_FILE.exists():
-        print(f"Error: {EVAL_FILE} not found. Please create it first.")
-        return []
-    with open(EVAL_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
+GROUND_TRUTH_PATH = "data/eval/ground_truth.json"
+REPORT_PATH = "data/eval/report.json"
 
 
-def check_answer(case: Dict, result: Dict) -> Dict:
+def detect_fail_type(
+    case: dict, result, verdict_ok: bool, must_include_ok: bool
+) -> str | None:
     """
-    質問タイプに応じた厳密な合否判定ロジック
+    eval_policy.md に基づき、FAILの原因を分類する
     """
-    # 基本情報の取得
-    q_type = case.get("type", "explicit")  # デフォルトは明示質問
-    expected_verdict = case.get("expected_verdict")
-    actual_verdict = result.get("verdict")
+    answer_text = result.answer.strip()
 
-    # 判定フラグ
-    is_pass = True
-    fail_reasons = []
+    # 1. 基本的なエラー
+    if not answer_text or len(answer_text) < 5:
+        return "EMPTY_ANSWER"
 
-    # === 共通チェック: Verdictの一致 ===
-    if expected_verdict and expected_verdict != actual_verdict:
-        is_pass = False
-        fail_reasons.append(
-            f"Verdict mismatch: expected {expected_verdict}, got {actual_verdict}"
+    # 2. RAGの自己評価と期待値のズレ
+    if not verdict_ok:
+        if (
+            case["expected_verdict"] == "sufficient"
+            and result.verification.verdict == "insufficient"
+        ):
+            return "RETRIEVAL_FAILURE (Evidence Missing)"
+
+        if (
+            case["expected_verdict"] == "insufficient"
+            and result.verification.verdict == "sufficient"
+        ):
+            return "HALLUCINATION / OVERCONFIDENCE"
+
+        return "VERDICT_MISMATCH"
+
+    # 3. キーワード不足
+    if not must_include_ok:
+        if case["type"] == "omission_detection":
+            return "OMISSION (Critical Condition Missing)"
+        if case["type"] == "priority_conflict":
+            return "PRIORITY_ERROR (Wrong Rule Applied)"
+        if case["type"] == "opinion_guard":
+            return "OPINION_LEAK (Subjective)"
+        return "FACTUAL_ERROR (Keyword Missing)"
+
+    return None  # PASS
+
+
+def generate_trend_hints(distribution: dict, total_fail: int) -> list[str]:
+    """分布データから、人間向けの分析コメントを生成する"""
+    hints = []
+    if total_fail == 0:
+        return ["FAILはありません。素晴らしい状態です！"]
+
+    # 1. CRITICALチェック
+    crit_count = distribution["by_priority"].get("CRITICAL", 0)
+    if crit_count > 0:
+        hints.append(
+            f"CRITICALなFAILが {crit_count}件 あります。これらは即時修正が必要です。"
         )
 
-    # === タイプ別チェック ===
-
-    # ① 明示仕様質問 (Explicit)
-    if q_type == "explicit":
-        # sufficient であることが必須（共通チェックでカバー済みだが念押し）
-        if actual_verdict != "sufficient":
-            # 既に共通チェックでFalseになっているが、理由を明確化
-            pass
-
-    # ② 未定義検出質問 (Undefined)
-    elif q_type == "undefined":
-        # insufficient であること + 「書いてない」という根拠が出ているか
-        # unsupported_claims または missing_points に何か入っているべき
-        has_unsupported = len(result.get("unsupported_claims", [])) > 0
-        has_missing = len(result.get("missing_points", [])) > 0
-
-        if not (has_unsupported or has_missing):
-            is_pass = False
-            fail_reasons.append(
-                "Type Undefined error: No missing points or unsupported claims detected"
+    # 2. 犯人探し（Owner分析）
+    by_owner = distribution["by_owner"]
+    if by_owner:
+        # 最も多いOwnerを見つける
+        top_owner, count = max(by_owner.items(), key=lambda x: x[1])
+        if count >= total_fail * 0.5:  # 過半数を占める場合
+            hints.append(
+                f"{top_owner} 起因のFAILが全体の {count / total_fail * 100:.0f}% を占めています。ここの改善が効果的です。"
             )
 
-    # ③ 横断整合性質問 (Cross-doc)
-    elif q_type == "cross_doc":
-        # 複数のドキュメントを参照しているかチェック
-        # hits からユニークな doc_id を抽出
-        hits = result.get("hits", [])
-        unique_docs = set(h["doc_id"] for h in hits)
-
-        if len(unique_docs) < 2:
-            # 必須ではないかもしれないが、Cross-docなら複数見ていないと怪しい
-            # ここでは厳格にFAILにするか、WARNにするか選べる。今回は厳格に判定。
-            is_pass = False
-            fail_reasons.append(
-                f"Type Cross-doc error: Referred only {len(unique_docs)} doc(s). Expected >= 2"
-            )
-
-    # ④ 判断禁止質問 (Non-judgmental)
-    elif q_type == "non_judgmental":
-        # 絶対に sufficient になってはいけない
-        if actual_verdict == "sufficient":
-            is_pass = False
-            fail_reasons.append(
-                "Type Non-judgmental error: AI made a judgment (sufficient) on subjective topic"
-            )
-
-    # === キーワードチェック (must_include) ===
-    must_include = case.get("must_include", [])
-    answer_text = result.get("answer", "")
-    missing_words = []
-
-    for word in must_include:
-        if word not in answer_text:
-            is_pass = False
-            missing_words.append(word)
-
-    if missing_words:
-        fail_reasons.append(f"Missing keywords: {missing_words}")
-
-    return {
-        "id": case.get("id"),
-        "question": case.get("question"),
-        "type": q_type,  # レポートにもタイプを出力
-        "pass": is_pass,
-        "details": {
-            "fail_reasons": fail_reasons,  # 失敗理由をリストで返す
-            "expected_verdict": expected_verdict,
-            "actual_verdict": actual_verdict,
-            "actual_answer": answer_text,
-        },
-    }
+    return hints
 
 
-def main():
-    cases = load_ground_truth()
-    if not cases:
-        return
-
-    print(f"Starting evaluation of {len(cases)} cases...\n")
+def run_evaluation():
+    with open(GROUND_TRUTH_PATH, encoding="utf-8") as f:
+        cases = json.load(f)
 
     results = []
-    passed_count = 0
-    start_time = time.time()
 
-    for i, case in enumerate(cases):
-        print(f"[{i + 1}/{len(cases)}] {case['question']} ... ", end="", flush=True)
+    # === 集計用カウンター ===
+    cnt_fail_type = Counter()
+    cnt_owner = Counter()
+    cnt_priority = Counter()
+    cnt_q_type = Counter()  # FAILした質問タイプのカウント(分布用)
 
-        # RAG実行
-        try:
-            rag_result = ask_question(case["question"])
-            if "error" in rag_result:
-                print(f"ERROR: {rag_result['error']}")
-                results.append(
-                    {"id": case["id"], "pass": False, "error": rag_result["error"]}
-                )
-                continue
+    # 【復活】カテゴリ別スコア計算用 (True/Falseのリスト)
+    by_type_score = defaultdict(list)
 
-            # 判定
-            eval_result = check_answer(case, rag_result)
-            results.append(eval_result)
+    print(f"Starting evaluation of {len(cases)} cases (Distribution Analysis)...\n")
+    start = time.time()
 
-            if eval_result["pass"]:
-                print("✅ PASS")
-                passed_count += 1
+    for i, case in enumerate(cases, 1):
+        print(f"[{i}/{len(cases)}] {case['question']} ... ", end="")
+
+        result = answer_question(case["question"])
+
+        # --- 評価ロジック ---
+        verdict_ok = result.verification.verdict == case["expected_verdict"]
+
+        must_include_ok = True
+        missing_words = []
+        for word in case.get("must_include", []):
+            if word not in result.answer:
+                must_include_ok = False
+                missing_words.append(word)
+
+        # Fail Type の判定
+        fail_type = detect_fail_type(case, result, verdict_ok, must_include_ok)
+
+        # 改善アクションの取得
+        suggested_action = get_suggestion(fail_type) if fail_type else None
+
+        passed = fail_type is None
+        status = "PASS" if passed else "FAIL"
+        print("✅ PASS" if passed else f"❌ FAIL ({fail_type})")
+
+        # === 集計処理 ===
+        by_type_score[case["type"]].append(passed)  # スコア計算用に記録
+
+        if not passed:
+            cnt_fail_type[fail_type] += 1
+            cnt_q_type[case["type"]] += 1
+
+            if suggested_action:
+                cnt_owner[suggested_action["owner"]] += 1
+                cnt_priority[suggested_action["priority"]] += 1
             else:
-                print("❌ FAIL")
-        except Exception as e:
-            print(f"EXCEPTION: {e}")
-            results.append({"id": case["id"], "pass": False, "error": str(e)})
+                cnt_owner["unknown"] += 1
+                cnt_priority["unknown"] += 1
 
-    duration = time.time() - start_time
-    score = (passed_count / len(cases)) * 100 if cases else 0
+        results.append(
+            {
+                "id": case["id"],
+                "type": case["type"],
+                "question": case["question"],
+                "result": status,
+                "fail_type": fail_type,
+                "suggested_action": suggested_action,
+                "rag_verdict": result.verification.verdict,
+                "expected_verdict": case["expected_verdict"],
+                "answer": result.answer,
+                "missing_words": missing_words,
+                "citations": [f"{s.doc_id}#{s.chunk_id}" for s in result.sources],
+            }
+        )
 
-    # レポート出力
-    REPORT_FILE.parent.mkdir(parents=True, exist_ok=True)
-    report = {
-        "score": score,
-        "duration_seconds": duration,
-        "total": len(cases),
+    elapsed = time.time() - start
+
+    # === レポート生成 ===
+    total_cases = len(results)
+    passed_count = sum(r["result"] == "PASS" for r in results)
+    failed_count = total_cases - passed_count
+
+    # 分布オブジェクトの作成
+    distribution = {
+        "by_fail_type": dict(cnt_fail_type),
+        "by_owner": dict(cnt_owner),
+        "by_priority": dict(cnt_priority),
+        "by_question_type": dict(cnt_q_type),
+    }
+
+    # トレンド分析
+    trend_hint = generate_trend_hints(distribution, failed_count)
+
+    summary = {
+        "total": total_cases,
         "passed": passed_count,
-        "failed": len(cases) - passed_count,
+        "failed": failed_count,
+        "score": passed_count / total_cases * 100 if total_cases else 0,
+        "time_sec": round(elapsed, 2),
+    }
+
+    report = {
+        "summary": summary,
+        "distribution": distribution,
+        "trend_hint": trend_hint,
         "details": results,
     }
 
-    with open(REPORT_FILE, "w", encoding="utf-8") as f:
+    with open(REPORT_PATH, "w", encoding="utf-8") as f:
         json.dump(report, f, ensure_ascii=False, indent=2)
 
     print("\n==============================")
-    print("Evaluation Complete")
-    print(f"Score: {score:.1f}% ({passed_count}/{len(cases)})")
-    print(f"Time:  {duration:.2f}s")
-    print(f"Report saved to: {REPORT_FILE}")
+    print("Distribution Report Generated")
+    print(f"Score: {summary['score']:.1f}% ({passed_count}/{total_cases})")
+
+    # 【復活】カテゴリ別スコアの表示
+    for t, v in by_type_score.items():
+        type_score = sum(v) / len(v) * 100
+        print(f"{t}: {type_score:.1f}%")
+
+    print("--- Trend Hints ---")
+    for hint in trend_hint:
+        print(f"👉 {hint}")
+    print(f"\nReport saved to: {REPORT_PATH}")
     print("==============================")
 
 
 if __name__ == "__main__":
-    main()
+    run_evaluation()

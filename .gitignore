@@ -217,3 +217,5 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+_all_project_code.txt

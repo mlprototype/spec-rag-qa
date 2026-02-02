@@ -1,0 +1,41 @@
+name: RAG Quality Gate
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch: # 手動実行ボタンもつける
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+
+    - name: Run Evaluation
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        PYTHONPATH: src
+      run: |
+        # インデックスがないと動かないので、まずはデータ作成
+        python -m ragqa.ingest
+        # 評価実行（FAILならここで止まる）
+        python -m ragqa.evaluate
+
+    - name: Upload Report
+      if: always() # 失敗してもレポートは見たい
+      uses: actions/upload-artifact@v4
+      with:
+        name: quality-report
+        path: data/eval/report.json
