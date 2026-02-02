@@ -1,0 +1,11 @@
+cat <<EOF > data/docs/sample_spec.md
+# 会員登録 仕様書（サンプル）
+
+## 入力
+- email（必須）
+- password（8文字以上）
+
+## 例外条件
+- email が既に登録済みの場合：409エラー
+- password が条件未満の場合：400エラー
+EOF

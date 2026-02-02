@@ -1,0 +1,100 @@
+{
+  "summary": {
+    "total": 5,
+    "passed": 5,
+    "failed": 0,
+    "score": 100.0,
+    "time_sec": 47.64
+  },
+  "distribution": {
+    "by_fail_type": {},
+    "by_owner": {},
+    "by_priority": {},
+    "by_question_type": {}
+  },
+  "trend_hint": [
+    "FAILはありません。素晴らしい状態です！"
+  ],
+  "details": [
+    {
+      "id": "qa-001",
+      "type": "factual_basic",
+      "question": "パスワードの必須条件を教えて",
+      "result": "PASS",
+      "fail_type": null,
+      "suggested_action": null,
+      "rag_verdict": "sufficient",
+      "expected_verdict": "sufficient",
+      "answer": "- 結論: パスワードは8文字以上である必要があります。\n- 根拠: 「password（8文字以上）」という記述が仕様書に明記されています。 (source: spec.md)\n- 不明点・確認事項: 現在の仕様書には、パスワードに関する他の条件（例: 英数字混在など）は将来の要件として記載されていますが、現時点では明確に定義されていません。 (source: design.md)",
+      "missing_words": [],
+      "citations": [
+        "sample_spec.md#0",
+        "sample_design.md#0"
+      ]
+    },
+    {
+      "id": "qa-002",
+      "type": "factual_basic",
+      "question": "登録済みのメールアドレスを使用した時のエラーコードは？",
+      "result": "PASS",
+      "fail_type": null,
+      "suggested_action": null,
+      "rag_verdict": "sufficient",
+      "expected_verdict": "sufficient",
+      "answer": "- 結論: 409エラー\n- 根拠: 「email が既に登録済みの場合：409エラー」と記載されている（source: spec.md）。\n- 不明点・確認事項: なし",
+      "missing_words": [],
+      "citations": [
+        "sample_spec.md#0",
+        "sample_design.md#0"
+      ]
+    },
+    {
+      "id": "qa-003",
+      "type": "omission_detection",
+      "question": "退会したユーザーのデータ保持期間はどのくらい？",
+      "result": "PASS",
+      "fail_type": null,
+      "suggested_action": null,
+      "rag_verdict": "insufficient",
+      "expected_verdict": "insufficient",
+      "answer": "結論：不明\n\n根拠：退会したユーザーのデータ保持期間に関する記載は、spec.mdやdesign.mdには見当たりません。\n\n不明点・確認事項：退会したユーザーのデータ保持期間についての具体的な情報が必要です。",
+      "missing_words": [],
+      "citations": [
+        "sample_spec.md#0",
+        "sample_design.md#0"
+      ]
+    },
+    {
+      "id": "qa-004",
+      "type": "priority_conflict",
+      "question": "パスワードに英数字の混在は必須ですか？",
+      "result": "PASS",
+      "fail_type": null,
+      "suggested_action": null,
+      "rag_verdict": "sufficient",
+      "expected_verdict": "sufficient",
+      "answer": "- 結論: パスワードに英数字の混在は必須ではない。\n- 根拠: spec.mdには「password（8文字以上）」と記載されており、design.mdには「password: 8文字以上、英数字混在は将来要件」と記載されているため、現時点では英数字の混在は必須ではないが、将来的な要件として考慮されていることが示されています。 \n- 不明点・確認事項: 現在の要件において英数字の混在が必須かどうかは明記されていないため、将来の要件についての具体的なタイミングや詳細は不明です。",
+      "missing_words": [],
+      "citations": [
+        "sample_spec.md#0",
+        "sample_design.md#0"
+      ]
+    },
+    {
+      "id": "qa-005",
+      "type": "opinion_guard",
+      "question": "この仕様はユーザーにとって使いやすいですか？",
+      "result": "PASS",
+      "fail_type": null,
+      "suggested_action": null,
+      "rag_verdict": "insufficient",
+      "expected_verdict": "insufficient",
+      "answer": "結論：仕様書にはユーザーにとっての使いやすさに関する記載がないため判断できない。\n\n根拠：仕様書には「使いやすい」という評価に関する記載がなく、ユーザーの使いやすさに関する具体的な要件や基準が示されていないため、判断できません。\n\n不明点・確認事項：ユーザーにとっての使いやすさを評価するための基準や要件が必要です。",
+      "missing_words": [],
+      "citations": [
+        "sample_spec.md#0",
+        "sample_design.md#0"
+      ]
+    }
+  ]
+}
