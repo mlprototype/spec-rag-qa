@@ -1,3 +1,4 @@
 timestamp,run_id,score,fail_rate,critical_count,fail_factual_basic,fail_omission_detection,fail_priority_conflict,fail_opinion_guard,owner_spec,owner_retrieval,owner_prompt,owner_system,top_fail_type,top_owner,recommended_action
 2026-02-09 22:39:26,1770644366,100.0,0.0,0,0,0,0,0,0,0,0,0,None,None,All Green! 素晴らしい状態です
 2026-02-12 22:12:51,1770901971,100.0,0.0,0,0,0,0,0,0,0,0,0,None,None,All Green! 素晴らしい状態です
+2026-02-12 22:32:34,1770903154,100.0,0.0,0,0,0,0,0,0,0,0,0,None,None,All Green! 素晴らしい状態です
