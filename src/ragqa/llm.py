@@ -1,17 +1,33 @@
 from __future__ import annotations
 
-from langsmith.wrappers import wrap_openai
-
 from .config import cfg
 
 
-def answer_with_openai(prompt: str) -> str:
+def _should_wrap_langsmith() -> bool:
+    return (
+        cfg.enable_langsmith and cfg.langsmith_tracing and bool(cfg.langsmith_api_key)
+    )
+
+
+def _build_openai_client():
     # openai>=1.x
     from openai import OpenAI
 
-    # クライアント作成時に wrap_openai で包むことで、LangSmithにトレースできるようにする。
     raw_client = OpenAI(api_key=cfg.openai_api_key)
-    client = wrap_openai(raw_client)
+    if not _should_wrap_langsmith():
+        return raw_client
+
+    try:
+        from langsmith.wrappers import wrap_openai
+
+        return wrap_openai(raw_client)
+    except Exception:
+        # トレーシング設定不備で本処理を止めない
+        return raw_client
+
+
+def answer_with_openai(prompt: str) -> str:
+    client = _build_openai_client()
 
     resp = client.chat.completions.create(
         model=cfg.openai_model,
@@ -24,16 +40,15 @@ def answer_with_openai(prompt: str) -> str:
     return resp.choices[0].message.content or ""
 
 
-def fallback_answer(prompt: str, contexts: list[str]) -> str:
-    # キー無しでも動く：検索結果を返す
+def fallback_answer(contexts: list[str], reason: str) -> str:
     bullets = "\n".join([f"- {c[:240].replace(chr(10), ' ')}..." for c in contexts])
-    return f"""（APIキーは設定されていますが、SDK初期化に失敗しました、生成回答の代わりに検索結果を表示します）
+    return f"""（{reason}）
 
 # 検索で見つかった関連箇所
 {bullets}
 
 # 次にやると良いこと
-- .env に OPENAI_API_KEY を設定すると、コンテキストを根拠に回答を生成します
+- .env に OPENAI_API_KEY を設定し、依存関係を確認すると生成回答を利用できます
 """
 
 
@@ -43,6 +58,8 @@ def run_llm(prompt: str, contexts: list[str]) -> str:
             return answer_with_openai(prompt)
         except Exception as e:
             return f"(OpenAI呼び出しでエラー: {e})\n\n" + fallback_answer(
-                prompt, contexts
+                contexts, "OpenAI呼び出しに失敗したため、生成回答の代わりに検索結果を表示します"
             )
-    return fallback_answer(prompt, contexts)
+    return fallback_answer(
+        contexts, "OpenAI APIキーが未設定のため、生成回答の代わりに検索結果を表示します"
+    )

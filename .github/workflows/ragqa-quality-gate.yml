@@ -26,10 +26,7 @@ jobs:
     - name: Run Evaluation
       env:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        LANGCHAIN_TRACING_V2: "true"
-        LANGCHAIN_ENDPOINT: "https://api.smith.langchain.com"
-        LANGCHAIN_API_KEY: ${{ secrets.LANGCHAIN_API_KEY }}
-        LANGCHAIN_PROJECT: "spec-rag-qa"
+        RAGQA_ENABLE_LANGSMITH: "false"
         PYTHONPATH: src
       run: |
         # インデックス作成

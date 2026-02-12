@@ -7,7 +7,7 @@ import time
 from collections import Counter, defaultdict
 
 # serviceからロジックを呼ぶ
-from ragqa.ask import answer_question
+from ragqa.service import answer_question
 
 # OpenAIクライアント用
 from ragqa.config import cfg
