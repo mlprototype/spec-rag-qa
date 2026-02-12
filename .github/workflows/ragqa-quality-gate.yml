@@ -5,7 +5,7 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
-  workflow_dispatch: # 手動実行ボタンもつける
+  workflow_dispatch:
 
 jobs:
   evaluate:
@@ -26,17 +26,22 @@ jobs:
     - name: Run Evaluation
       env:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        LANGCHAIN_TRACING_V2: "true"
+        LANGCHAIN_ENDPOINT: "https://api.smith.langchain.com"
+        LANGCHAIN_API_KEY: ${{ secrets.LANGCHAIN_API_KEY }}
+        LANGCHAIN_PROJECT: "spec-rag-qa"
         PYTHONPATH: src
       run: |
-        # インデックスがないと動かないので、まずはデータ作成
+        # インデックス作成
         python -m ragqa.ingest
-        # 評価実行（FAILならここで止まる）
+        # 評価実行
         python -m ragqa.evaluate
 
-    - name: Upload Report
-      if: always() # 失敗してもレポートは見たい
+    - name: Upload Quality Artifacts
+      if: always()
       uses: actions/upload-artifact@v4
       with:
         name: quality-artifacts
-        path: data/eval/report.json
-        data/eval/trend.csv
+        path: |
+          data/eval/report.json
+          data/eval/trend.csv
