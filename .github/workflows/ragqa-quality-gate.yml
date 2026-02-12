@@ -37,5 +37,6 @@ jobs:
       if: always() # 失敗してもレポートは見たい
       uses: actions/upload-artifact@v4
       with:
-        name: quality-report
+        name: quality-artifacts
         path: data/eval/report.json
+        data/eval/trend.csv

@@ -1,4 +1,8 @@
+import csv
+import datetime
 import json
+import os
+import sys
 import time
 from collections import Counter, defaultdict
 
@@ -10,6 +14,107 @@ from ragqa.improvement_catalog import get_suggestion
 
 GROUND_TRUTH_PATH = "data/eval/ground_truth.json"
 REPORT_PATH = "data/eval/report.json"
+TREND_CSV_PATH = "data/eval/trend.csv"
+
+
+def append_trend_csv(report: dict):
+    """
+    評価結果を時系列CSVに追記する（DB代わり）
+    Lv5: Actionable Trend 対応
+    """
+    # 1. データの整形
+    now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    summary = report["summary"]
+    dist = report["distribution"]
+
+    # 簡易的なユニークIDとしてUNIX時間を使用
+    run_id = int(time.time())
+
+    # --- Lv5: 自動トリアージロジック ---
+    top_fail_type = "None"
+    top_owner = "None"
+    recommended_action = "None"
+
+    if summary["failed"] > 0:
+        # 最も多かった失敗原因を特定
+        if dist["by_fail_type"]:
+            top_fail_type, _ = max(dist["by_fail_type"].items(), key=lambda x: x[1])
+
+            # 改善提案を取得（改行コードはCSVを壊すのでスペースに置換）
+            suggestion = get_suggestion(top_fail_type)
+            if suggestion:
+                recommended_action = suggestion["example_fix"].replace("\n", " / ")
+            else:
+                recommended_action = "要調査（カタログ未定義）"
+
+        # 最も多かった責任元を特定
+        if dist["by_owner"]:
+            top_owner, _ = max(dist["by_owner"].items(), key=lambda x: x[1])
+    else:
+        recommended_action = "All Green! 素晴らしい状態です"
+
+    # --- CSV行データ作成 ---
+    row = {
+        # 基本指標
+        "timestamp": now_str,
+        "run_id": run_id,
+        "score": summary["score"],
+        "fail_rate": summary["failed"] / summary["total"]
+        if summary["total"] > 0
+        else 0,
+        "critical_count": dist["by_priority"].get("CRITICAL", 0),
+        # ① Question Type別 FAIL数（機能劣化の検知）
+        "fail_factual_basic": dist["by_question_type"].get("factual_basic", 0),
+        "fail_omission_detection": dist["by_question_type"].get(
+            "omission_detection", 0
+        ),
+        "fail_priority_conflict": dist["by_question_type"].get("priority_conflict", 0),
+        "fail_opinion_guard": dist["by_question_type"].get("opinion_guard", 0),
+        # ② Owner別 FAIL数（責任分界点）
+        "owner_spec": dist["by_owner"].get("spec", 0),
+        "owner_retrieval": dist["by_owner"].get("rag", 0),  # catalogでは"rag"として定義
+        "owner_prompt": dist["by_owner"].get("prompt", 0),
+        "owner_system": dist["by_owner"].get("system", 0),
+        # ③ Next Action（意思決定）
+        "top_fail_type": top_fail_type,
+        "top_owner": top_owner,
+        "recommended_action": recommended_action,
+    }
+
+    # 2. ファイル書き込み
+    os.makedirs(os.path.dirname(TREND_CSV_PATH), exist_ok=True)
+    file_exists = os.path.exists(TREND_CSV_PATH)
+
+    # カラム定義（増えた分を反映）
+    fieldnames = [
+        "timestamp",
+        "run_id",
+        "score",
+        "fail_rate",
+        "critical_count",
+        # Type
+        "fail_factual_basic",
+        "fail_omission_detection",
+        "fail_priority_conflict",
+        "fail_opinion_guard",
+        # Owner
+        "owner_spec",
+        "owner_retrieval",
+        "owner_prompt",
+        "owner_system",
+        # Action
+        "top_fail_type",
+        "top_owner",
+        "recommended_action",
+    ]
+
+    with open(TREND_CSV_PATH, "a", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
+        if not file_exists:
+            writer.writeheader()
+        writer.writerow(row)
+
+    print(f"📈 Trend data appended to: {TREND_CSV_PATH}")
 
 
 def detect_fail_type(
@@ -69,9 +174,8 @@ def generate_trend_hints(distribution: dict, total_fail: int) -> list[str]:
     # 2. 犯人探し（Owner分析）
     by_owner = distribution["by_owner"]
     if by_owner:
-        # 最も多いOwnerを見つける
         top_owner, count = max(by_owner.items(), key=lambda x: x[1])
-        if count >= total_fail * 0.5:  # 過半数を占める場合
+        if count >= total_fail * 0.5:
             hints.append(
                 f"{top_owner} 起因のFAILが全体の {count / total_fail * 100:.0f}% を占めています。ここの改善が効果的です。"
             )
@@ -89,9 +193,7 @@ def run_evaluation():
     cnt_fail_type = Counter()
     cnt_owner = Counter()
     cnt_priority = Counter()
-    cnt_q_type = Counter()  # FAILした質問タイプのカウント(分布用)
-
-    # 【復活】カテゴリ別スコア計算用 (True/Falseのリスト)
+    cnt_q_type = Counter()
     by_type_score = defaultdict(list)
 
     print(f"Starting evaluation of {len(cases)} cases (Distribution Analysis)...\n")
@@ -112,10 +214,7 @@ def run_evaluation():
                 must_include_ok = False
                 missing_words.append(word)
 
-        # Fail Type の判定
         fail_type = detect_fail_type(case, result, verdict_ok, must_include_ok)
-
-        # 改善アクションの取得
         suggested_action = get_suggestion(fail_type) if fail_type else None
 
         passed = fail_type is None
@@ -123,11 +222,11 @@ def run_evaluation():
         print("✅ PASS" if passed else f"❌ FAIL ({fail_type})")
 
         # === 集計処理 ===
-        by_type_score[case["type"]].append(passed)  # スコア計算用に記録
+        by_type_score[case["type"]].append(passed)
 
         if not passed:
             cnt_fail_type[fail_type] += 1
-            cnt_q_type[case["type"]] += 1
+            cnt_q_type[case["type"]] += 1  # FAIL数としてカウント
 
             if suggested_action:
                 cnt_owner[suggested_action["owner"]] += 1
@@ -159,7 +258,6 @@ def run_evaluation():
     passed_count = sum(r["result"] == "PASS" for r in results)
     failed_count = total_cases - passed_count
 
-    # 分布オブジェクトの作成
     distribution = {
         "by_fail_type": dict(cnt_fail_type),
         "by_owner": dict(cnt_owner),
@@ -167,7 +265,6 @@ def run_evaluation():
         "by_question_type": dict(cnt_q_type),
     }
 
-    # トレンド分析
     trend_hint = generate_trend_hints(distribution, failed_count)
 
     summary = {
@@ -188,11 +285,13 @@ def run_evaluation():
     with open(REPORT_PATH, "w", encoding="utf-8") as f:
         json.dump(report, f, ensure_ascii=False, indent=2)
 
+    # 【CSV追記】強化版を呼び出し
+    append_trend_csv(report)
+
     print("\n==============================")
     print("Distribution Report Generated")
     print(f"Score: {summary['score']:.1f}% ({passed_count}/{total_cases})")
 
-    # 【復活】カテゴリ別スコアの表示
     for t, v in by_type_score.items():
         type_score = sum(v) / len(v) * 100
         print(f"{t}: {type_score:.1f}%")
@@ -201,8 +300,30 @@ def run_evaluation():
     for hint in trend_hint:
         print(f"👉 {hint}")
     print(f"\nReport saved to: {REPORT_PATH}")
+    print(f"Trend data saved to: {TREND_CSV_PATH}")
     print("==============================")
 
 
 if __name__ == "__main__":
     run_evaluation()
+
+    # Quality Gate Check
+    try:
+        with open(REPORT_PATH, encoding="utf-8") as f:
+            report = json.load(f)
+
+        if report["summary"]["failed"] > 0:
+            print("\n🚫 Quality Gate Failed: FAIL detected.")
+            sys.exit(1)
+
+        if report["summary"]["score"] < 95.0:
+            print(
+                f"\n🚫 Quality Gate Failed: Score {report['summary']['score']} is below 95.0."
+            )
+            sys.exit(1)
+
+        print("\n✅ Quality Gate Passed.")
+        sys.exit(0)
+    except Exception as e:
+        print(f"\n🚫 System Error during Quality Gate check: {e}")
+        sys.exit(1)

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from langsmith.wrappers import wrap_openai
+
 from .config import cfg
 
 
@@ -7,7 +9,9 @@ def answer_with_openai(prompt: str) -> str:
     # openai>=1.x
     from openai import OpenAI
 
-    client = OpenAI(api_key=cfg.openai_api_key)
+    # クライアント作成時に wrap_openai で包むことで、LangSmithにトレースできるようにする。
+    raw_client = OpenAI(api_key=cfg.openai_api_key)
+    client = wrap_openai(raw_client)
 
     resp = client.chat.completions.create(
         model=cfg.openai_model,

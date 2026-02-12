@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from langsmith import traceable
+
 from .config import cfg
 from .embedder import Embedder
 from .llm import run_llm
@@ -14,6 +16,7 @@ from .utils import (
 from .vectorstore import VectorStore
 
 
+@traceable(name="RAG Pipeline")
 def answer_question(question: str) -> AnswerResult:
     """
     質問を受け取り、RAGを実行し、検証結果を含めた構造化データを返す。
