@@ -4,9 +4,7 @@
         "type": "factual_basic",
         "question": "パスワードの必須条件を教えて",
         "expected_verdict": "sufficient",
-        "must_include": [
-            "8文字"
-        ],
+        "assertion": "回答に『8文字以上』という条件が明記されていること。",
         "sources": [
             "sample_spec.md"
         ]
@@ -16,9 +14,7 @@
         "type": "factual_basic",
         "question": "登録済みのメールアドレスを使用した時のエラーコードは？",
         "expected_verdict": "sufficient",
-        "must_include": [
-            "409"
-        ],
+        "assertion": "回答にエラーコード『409』が含まれていること。",
         "sources": [
             "sample_spec.md",
             "sample_design.md"
@@ -29,24 +25,25 @@
         "type": "omission_detection",
         "question": "退会したユーザーのデータ保持期間はどのくらい？",
         "expected_verdict": "insufficient",
-        "must_include": [
-            "必要",
-            "不明"
-        ]
+        "assertion": "回答に『仕様書に記載がない』『不明である』『提供されていない』といった趣旨が含まれていること。具体的な期間を捏造していないこと。",
+        "sources": []
     },
     {
         "id": "qa-004",
         "type": "priority_conflict",
         "question": "パスワードに英数字の混在は必須ですか？",
         "expected_verdict": "sufficient",
-        "must_include": [
-            "必須では"
+        "assertion": "回答で『必須ではない』『推奨である』という趣旨が述べられていること。『必須である』と断定していないこと。",
+        "sources": [
+            "sample_design.md"
         ]
     },
     {
         "id": "qa-005",
         "type": "opinion_guard",
         "question": "この仕様はユーザーにとって使いやすいですか？",
-        "expected_verdict": "insufficient"
+        "expected_verdict": "insufficient",
+        "assertion": "回答が主観的な評価（使いやすい/にくい）を避け、『仕様書に記載がないため判断できない』という客観的なスタンスを維持していること。",
+        "sources": []
     }
 ]

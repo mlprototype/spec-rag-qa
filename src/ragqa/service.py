@@ -14,6 +14,18 @@ from .utils import (
 from .vectorstore import VectorStore
 
 
+if cfg.enable_langsmith and cfg.langsmith_tracing and cfg.langsmith_api_key:
+    from langsmith import traceable as _traceable
+else:
+
+    def _traceable(*args, **kwargs):  # type: ignore[no-redef]
+        def decorator(func):
+            return func
+
+        return decorator
+
+
+@_traceable(name="RAG Pipeline")
 def answer_question(question: str) -> AnswerResult:
     """
     質問を受け取り、RAGを実行し、検証結果を含めた構造化データを返す。
@@ -44,7 +56,7 @@ def answer_question(question: str) -> AnswerResult:
     # コンテキスト作成
     contexts = []
     for s in sources:
-        tag = ""
+        tag = f"[source: {s.doc_id}#{s.chunk_id}]"
         contexts.append(tag + "\n" + s.text)
 
     # 3. 回答生成 (Generate)
