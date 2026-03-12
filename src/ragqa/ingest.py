@@ -54,6 +54,37 @@ def main() -> None:
     vs.add(embs, all_chunks)
     vs.save(cfg.faiss_index_path, cfg.meta_path)
 
+    # === BM25インデックス構築 ===
+    from .bm25_store import BM25Store
+
+    bm25 = BM25Store(b=cfg.bm25_b, k1=cfg.bm25_k1)
+    bm25.build(all_chunks)
+    bm25.save(cfg.bm25_index_path, cfg.bm25_postings_path)
+    print(f"BM25 indexed: vocab={len(bm25.df)} chunks={bm25.N} avgdl={bm25.avgdl:.1f}")
+
+    # === manifest.json 生成 ===
+    import datetime
+    import hashlib
+    import json
+
+    doc_hashes = {}
+    for doc_id, text in docs:
+        doc_hashes[doc_id] = hashlib.sha256(text.encode()).hexdigest()[:16]
+
+    manifest = {
+        "created_at": datetime.datetime.utcnow().isoformat() + "Z",
+        "doc_hashes": doc_hashes,
+        "embedding_config": {"model": "sentence-transformers/all-MiniLM-L6-v2"},
+        "bm25_config": {"b": cfg.bm25_b, "k1": cfg.bm25_k1},
+        "integrity": {"total_chunks": len(all_chunks), "vocab_size": len(bm25.df)},
+    }
+    cfg.manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    cfg.manifest_path.write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    print(f"Manifest saved: {cfg.manifest_path}")
+
     print(
         f"Indexed docs={len(docs)} chunks={len(all_chunks)} -> {cfg.faiss_index_path}"
     )

@@ -8,9 +8,9 @@ on:
   workflow_dispatch:
 
 jobs:
-  evaluate:
+  unit-test:
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v3
 
@@ -23,16 +23,188 @@ jobs:
       run: |
         pip install -r requirements.txt
 
+    - name: Run unit tests (BM25 + Tokenizer + HybridRetriever)
+      env:
+        PYTHONPATH: src
+      run: |
+        pytest tests/test_bm25.py tests/test_tokenizer.py tests/test_hybrid_retriever.py tests/test_exact_match_boost_integration.py tests/test_retrieval_metrics.py tests/test_phase5_grid_search.py -v
+
+  retrieval-gate:
+    needs: unit-test
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+
+    - name: Cache HuggingFace model
+      id: hf-cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/huggingface
+        key: hf-${{ runner.os }}-${{ hashFiles('requirements.txt') }}-all-MiniLM-L6-v2
+
+    - name: Pre-download model (if not cached)
+      if: steps.hf-cache.outputs.cache-hit != 'true'
+      run: |
+        python -c "
+        from sentence_transformers import SentenceTransformer
+        SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+        "
+
+    - name: Build index for expanded corpus
+      env:
+        TRANSFORMERS_OFFLINE: "1"
+        HF_DATASETS_OFFLINE: "1"
+        RAGQA_DOCS_DIR: data/phase0_expanded/docs
+        PYTHONPATH: src
+      run: |
+        python -m ragqa.ingest
+
+    - name: Run retrieval SLO gate
+      env:
+        TRANSFORMERS_OFFLINE: "1"
+        HF_DATASETS_OFFLINE: "1"
+        RAGQA_DOCS_DIR: data/phase0_expanded/docs
+        RETRIEVAL_GROUND_TRUTH_PATH: data/eval/ground_truth_phase0_expanded.json
+        RETRIEVAL_BASELINE_PATH: data/eval/phase0_vector_baseline_expanded.json
+        PYTHONPATH: src
+      run: |
+        python scripts/run_phase4_retrieval_eval.py
+
+    - name: Upload retrieval artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: retrieval-artifacts
+        path: |
+          data/eval/phase4_hybrid_retrieval_report.json
+
+  evaluate:
+    needs: retrieval-gate
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+
+    - name: Cache HuggingFace model
+      id: hf-cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/huggingface
+        key: hf-${{ runner.os }}-${{ hashFiles('requirements.txt') }}-all-MiniLM-L6-v2
+
+    - name: Pre-download model (if not cached)
+      if: steps.hf-cache.outputs.cache-hit != 'true'
+      run: |
+        python -c "
+        from sentence_transformers import SentenceTransformer
+        SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+        "
+
+    - name: Run Ingest (offline mode)
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        RAGQA_ENABLE_LANGSMITH: "false"
+        TRANSFORMERS_OFFLINE: "1"
+        HF_DATASETS_OFFLINE: "1"
+        RAGQA_DOCS_DIR: data/docs
+        PYTHONPATH: src
+      run: |
+        python -m ragqa.ingest
+
     - name: Run Evaluation
       env:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         RAGQA_ENABLE_LANGSMITH: "false"
+        TRANSFORMERS_OFFLINE: "1"
+        HF_DATASETS_OFFLINE: "1"
+        RAGQA_EVAL_GROUND_TRUTH_PATH: data/eval/ground_truth.json
         PYTHONPATH: src
       run: |
-        # インデックス作成
-        python -m ragqa.ingest
-        # 評価実行
         python -m ragqa.evaluate
+
+    - name: Monitor retrieval metrics (from report.json)
+      env:
+        RETRIEVAL_BASELINE_PATH: data/eval/phase0_vector_baseline.json
+        RETRIEVAL_RECALL5_MIN_RATIO: "0.90"
+        RETRIEVAL_MRR_MIN_RATIO: "0.90"
+        RETRIEVAL_FAILURE_MAX_RATIO: "1.20"
+        RETRIEVAL_MIN_RECALL_AT_5: "0.20"
+        RETRIEVAL_MIN_MRR: "0.10"
+        RETRIEVAL_MAX_FAILURE_RATE: "0.90"
+      run: |
+        python - <<'PY'
+        import json
+        import os
+        import sys
+        from pathlib import Path
+
+        report_path = Path("data/eval/report.json")
+        if not report_path.exists():
+            print("report.json not found")
+            sys.exit(1)
+
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+        retrieval = report.get("retrieval", {})
+        evaluable = int(retrieval.get("evaluable_cases", 0))
+        if evaluable == 0:
+            print("monitor failed: evaluable_cases == 0")
+            sys.exit(1)
+
+        r5 = float(retrieval.get("recall_at_5", 0.0))
+        mrr = float(retrieval.get("mrr", 0.0))
+        fr = float(retrieval.get("failure_rate", 1.0))
+
+        baseline_env = os.getenv("RETRIEVAL_BASELINE_PATH", "").strip()
+        baseline_path = Path(baseline_env) if baseline_env else None
+        if baseline_path is not None and baseline_path.exists():
+            baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
+            summary = baseline["summary"]
+            min_r5 = float(summary["recall_at_5"]) * float(os.getenv("RETRIEVAL_RECALL5_MIN_RATIO", "0.90"))
+            min_mrr = float(summary["mrr"]) * float(os.getenv("RETRIEVAL_MRR_MIN_RATIO", "0.90"))
+            max_fr = float(summary["failure_rate"]) * float(os.getenv("RETRIEVAL_FAILURE_MAX_RATIO", "1.20"))
+            mode = f"baseline-relative ({baseline_path})"
+        else:
+            min_r5 = float(os.getenv("RETRIEVAL_MIN_RECALL_AT_5", "0.20"))
+            min_mrr = float(os.getenv("RETRIEVAL_MIN_MRR", "0.10"))
+            max_fr = float(os.getenv("RETRIEVAL_MAX_FAILURE_RATE", "0.90"))
+            mode = "absolute fallback"
+
+        print(f"monitor mode: {mode}")
+        print(f"retrieval: evaluable={evaluable} recall@5={r5:.4f} mrr={mrr:.4f} failure_rate={fr:.4f}")
+
+        failed = []
+        if r5 < min_r5:
+            failed.append(f"recall@5 {r5:.4f} < {min_r5:.4f}")
+        if mrr < min_mrr:
+            failed.append(f"mrr {mrr:.4f} < {min_mrr:.4f}")
+        if fr > max_fr:
+            failed.append(f"failure_rate {fr:.4f} > {max_fr:.4f}")
+
+        if failed:
+            print("Retrieval monitor failed:")
+            for item in failed:
+                print(f"  - {item}")
+            sys.exit(1)
+        PY
 
     - name: Upload Quality Artifacts
       if: always()

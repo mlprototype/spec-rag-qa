@@ -219,3 +219,6 @@ __marimo__/
 .streamlit/secrets.toml
 
 _all_project_code.txt
+
+# Generated diagrams (not committed)
+artifacts/diagrams/

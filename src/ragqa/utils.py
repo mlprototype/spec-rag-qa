@@ -9,20 +9,29 @@ def _extract_json_object(text: str) -> Dict[str, Any]:
     """
     # まずは全体をそのままJSONとして試す
     try:
-        return json.loads(text)
+        parsed = json.loads(text)
+        if isinstance(parsed, dict):
+            return parsed
     except Exception:
         pass
 
     # ```json ... ``` の中身を優先
     fenced = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
     if fenced:
-        return json.loads(fenced.group(1))
+        parsed = json.loads(fenced.group(1))
+        if isinstance(parsed, dict):
+            return parsed
 
     # 最初の { から最後の } までを雑に抜く（最小実装）
-    m = re.search(r"(\{.*\})", text, re.DOTALL)
+    m = re.search(r"(\{.*?\})", text, re.DOTALL)  # 非貪欲マッチに変更
     if not m:
         raise ValueError("No JSON object found in verifier output.")
-    return json.loads(m.group(1))
+    
+    parsed = json.loads(m.group(1))
+    # パース結果が辞書型であることを確認。リスト等なら例外を投げてFallbackへ回す。
+    if not isinstance(parsed, dict):
+        raise ValueError(f"Extracted JSON is not a dictionary. Got: type {type(parsed)}")
+    return parsed
 
 
 def _parse_fallback(text: str) -> Dict[str, Any]:

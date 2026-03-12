@@ -1,0 +1,337 @@
+[
+  {
+    "id": "exp-001",
+    "type": "factual_basic",
+    "question": "登録済みメールアドレスで会員登録した場合のステータスコードは何ですか？",
+    "expected_verdict": "sufficient",
+    "assertion": "回答はメール重複時に 409 を返すことを含む。",
+    "expected_sources": [
+      "sample_spec_v2.md",
+      "error_code_reference.md"
+    ],
+    "sources": [
+      "sample_spec_v2.md",
+      "error_code_reference.md"
+    ]
+  },
+  {
+    "id": "exp-002",
+    "type": "paraphrase",
+    "question": "重複アカウント登録時の応答コードを教えてください。",
+    "expected_verdict": "sufficient",
+    "assertion": "回答は重複登録と 409 の対応を述べる。",
+    "expected_sources": [
+      "api_contract_signup.md",
+      "error_code_reference.md"
+    ],
+    "sources": [
+      "api_contract_signup.md",
+      "error_code_reference.md"
+    ]
+  },
+  {
+    "id": "exp-003",
+    "type": "priority_conflict",
+    "question": "英数字混在のパスワードは今すぐ必須ですか、それとも推奨ですか？",
+    "expected_verdict": "sufficient",
+    "assertion": "回答は現時点で推奨であり必須ではないことを示す。",
+    "expected_sources": [
+      "sample_spec_v2.md",
+      "auth_design_detail.md",
+      "password_policy_faq.md"
+    ],
+    "sources": [
+      "sample_spec_v2.md",
+      "auth_design_detail.md",
+      "password_policy_faq.md"
+    ]
+  },
+  {
+    "id": "exp-004",
+    "type": "factual_basic",
+    "question": "signup のエンドポイント定義はどの文書にありますか？",
+    "expected_verdict": "sufficient",
+    "assertion": "回答は POST /api/signup を含む。",
+    "expected_sources": [
+      "api_contract_signup.md",
+      "sample_spec_v2.md"
+    ],
+    "sources": [
+      "api_contract_signup.md",
+      "sample_spec_v2.md"
+    ]
+  },
+  {
+    "id": "exp-005",
+    "type": "cross_doc",
+    "question": "アカウント削除後、プロフィールデータは何日後にパージされますか？",
+    "expected_verdict": "sufficient",
+    "assertion": "回答は 30 日と削除状態を言及する。",
+    "expected_sources": [
+      "retention_policy.md",
+      "account_lifecycle_spec.md"
+    ],
+    "sources": [
+      "retention_policy.md",
+      "account_lifecycle_spec.md"
+    ]
+  },
+  {
+    "id": "exp-006",
+    "type": "factual_basic",
+    "question": "USER_ID を監査ログに必須とする記載はどこですか？",
+    "expected_verdict": "sufficient",
+    "assertion": "回答は USER_ID 必須記載に言及する。",
+    "expected_sources": [
+      "audit_logging_standard.md"
+    ],
+    "sources": [
+      "audit_logging_standard.md"
+    ]
+  },
+  {
+    "id": "exp-007",
+    "type": "cross_doc",
+    "question": "409エラーが継続したとき、サポートの最初の対応は何ですか？",
+    "expected_verdict": "sufficient",
+    "assertion": "回答は重複メール確認とトリアージを結びつける。",
+    "expected_sources": [
+      "support_playbook_identity.md",
+      "incident_runbook_auth.md"
+    ],
+    "sources": [
+      "support_playbook_identity.md",
+      "incident_runbook_auth.md"
+    ]
+  },
+  {
+    "id": "exp-008",
+    "type": "factual_basic",
+    "question": "対話セッションのアイドルタイムアウトは何分ですか？",
+    "expected_verdict": "sufficient",
+    "assertion": "回答は 30 分の無操作タイムアウトを含む。",
+    "expected_sources": [
+      "session_management_design.md"
+    ],
+    "sources": [
+      "session_management_design.md"
+    ]
+  },
+  {
+    "id": "exp-009",
+    "type": "paraphrase",
+    "question": "パスワード再設定の例外経路はどこに書かれていますか？",
+    "expected_verdict": "sufficient",
+    "assertion": "回答は設計資料とサポート資料への参照を含む。",
+    "expected_sources": [
+      "auth_design_detail.md",
+      "support_playbook_identity.md"
+    ],
+    "sources": [
+      "auth_design_detail.md",
+      "support_playbook_identity.md"
+    ]
+  },
+  {
+    "id": "exp-010",
+    "type": "factual_basic",
+    "question": "データ分類と保持マッピングを定義している文書はどれですか？",
+    "expected_verdict": "sufficient",
+    "assertion": "回答は public/internal/restricted の区分に言及する。",
+    "expected_sources": [
+      "data_classification_policy.md"
+    ],
+    "sources": [
+      "data_classification_policy.md"
+    ]
+  },
+  {
+    "id": "exp-011",
+    "type": "misleading",
+    "question": "重複メールは 422 ですか、それとも 409 ですか？",
+    "expected_verdict": "sufficient",
+    "assertion": "回答は 409 と 422 の違いを明確に区別する。",
+    "expected_sources": [
+      "error_code_reference.md",
+      "sample_spec_v2.md"
+    ],
+    "sources": [
+      "error_code_reference.md",
+      "sample_spec_v2.md"
+    ]
+  },
+  {
+    "id": "exp-012",
+    "type": "cross_doc",
+    "question": "最終パージ前に存在するアカウント状態を教えてください。",
+    "expected_verdict": "sufficient",
+    "assertion": "回答は active, suspended, deleted, purged に言及する。",
+    "expected_sources": [
+      "account_lifecycle_spec.md"
+    ],
+    "sources": [
+      "account_lifecycle_spec.md"
+    ]
+  },
+  {
+    "id": "exp-013",
+    "type": "factual_basic",
+    "question": "認証インシデントのトリアージ手順はどこにありますか？",
+    "expected_verdict": "sufficient",
+    "assertion": "回答は認証障害ランブックを参照する。",
+    "expected_sources": [
+      "incident_runbook_auth.md"
+    ],
+    "sources": [
+      "incident_runbook_auth.md"
+    ]
+  },
+  {
+    "id": "exp-014",
+    "type": "paraphrase",
+    "question": "パスワード複雑性は強制要件ではなくガイダンスだと書かれているのはどれですか？",
+    "expected_verdict": "sufficient",
+    "assertion": "回答は推奨扱いであることを含む。",
+    "expected_sources": [
+      "password_policy_faq.md",
+      "auth_design_detail.md"
+    ],
+    "sources": [
+      "password_policy_faq.md",
+      "auth_design_detail.md"
+    ]
+  },
+  {
+    "id": "exp-015",
+    "type": "factual_basic",
+    "question": "signup リクエストの項目（email/password/locale）はどこに定義されていますか？",
+    "expected_verdict": "sufficient",
+    "assertion": "回答は payload 項目定義を含む。",
+    "expected_sources": [
+      "api_contract_signup.md",
+      "sample_spec_v2.md"
+    ],
+    "sources": [
+      "api_contract_signup.md",
+      "sample_spec_v2.md"
+    ]
+  },
+  {
+    "id": "exp-016",
+    "type": "cross_doc",
+    "question": "セキュリティ監査ログの保持期間を定義している資料はどれですか？",
+    "expected_verdict": "sufficient",
+    "assertion": "回答は監査ログ標準と保持ポリシーを結びつける。",
+    "expected_sources": [
+      "audit_logging_standard.md",
+      "retention_policy.md"
+    ],
+    "sources": [
+      "audit_logging_standard.md",
+      "retention_policy.md"
+    ]
+  },
+  {
+    "id": "exp-017",
+    "type": "factual_basic",
+    "question": "メール重複と HTTP 409 の対応を明示している箇所はどこですか？",
+    "expected_verdict": "sufficient",
+    "assertion": "回答は重複メールと 409 を明示する。",
+    "expected_sources": [
+      "sample_spec_v2.md",
+      "error_code_reference.md"
+    ],
+    "sources": [
+      "sample_spec_v2.md",
+      "error_code_reference.md"
+    ]
+  },
+  {
+    "id": "exp-018",
+    "type": "factual_basic",
+    "question": "アカウントロック時の連絡テンプレートについて書かれている資料は？",
+    "expected_verdict": "sufficient",
+    "assertion": "回答はサポートプレイブックを参照する。",
+    "expected_sources": [
+      "support_playbook_identity.md"
+    ],
+    "sources": [
+      "support_playbook_identity.md"
+    ]
+  },
+  {
+    "id": "exp-019",
+    "type": "ambiguity",
+    "question": "停止と削除の分岐判断フローはどこに記載されていますか？",
+    "expected_verdict": "sufficient",
+    "assertion": "回答は停止可逆・削除承認の条件を含む。",
+    "expected_sources": [
+      "account_lifecycle_spec.md",
+      "retention_policy.md"
+    ],
+    "sources": [
+      "account_lifecycle_spec.md",
+      "retention_policy.md"
+    ]
+  },
+  {
+    "id": "exp-020",
+    "type": "cross_doc",
+    "question": "競合処理とエスカレーショントリガーの両方に触れている資料はどれですか？",
+    "expected_verdict": "sufficient",
+    "assertion": "回答は競合処理と障害エスカレーションを接続する。",
+    "expected_sources": [
+      "incident_runbook_auth.md",
+      "error_code_reference.md"
+    ],
+    "sources": [
+      "incident_runbook_auth.md",
+      "error_code_reference.md"
+    ]
+  },
+  {
+    "id": "exp-021",
+    "type": "omission_detection",
+    "question": "アバター画像の最大アップロード容量は何MBですか？",
+    "expected_verdict": "insufficient",
+    "assertion": "回答は資料に定義がないことを述べる。",
+    "expected_sources": [],
+    "sources": []
+  },
+  {
+    "id": "exp-022",
+    "type": "omission_detection",
+    "question": "Appleソーシャルログインは標準で有効ですか？",
+    "expected_verdict": "insufficient",
+    "assertion": "回答はソーシャルログイン仕様を捏造しない。",
+    "expected_sources": [],
+    "sources": []
+  },
+  {
+    "id": "exp-023",
+    "type": "opinion_guard",
+    "question": "ダークモードのプライマリボタンデザイントークンは何ですか？",
+    "expected_verdict": "insufficient",
+    "assertion": "回答はUIトークン仕様が存在しないことを明示する。",
+    "expected_sources": [],
+    "sources": []
+  },
+  {
+    "id": "exp-024",
+    "type": "omission_detection",
+    "question": "管理者ロールに生体認証は必須ですか？",
+    "expected_verdict": "insufficient",
+    "assertion": "回答は生体認証必須を推測で断定しない。",
+    "expected_sources": [],
+    "sources": []
+  },
+  {
+    "id": "exp-025",
+    "type": "omission_detection",
+    "question": "電話サポートの応答SLAは何分ですか？",
+    "expected_verdict": "insufficient",
+    "assertion": "回答は分単位SLAが未定義であると述べる。",
+    "expected_sources": [],
+    "sources": []
+  }
+]

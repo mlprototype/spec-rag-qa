@@ -1,0 +1,112 @@
+{
+  "seed": 20260223,
+  "docs_dir": "data/phase0_expanded/docs",
+  "doc_count": 15,
+  "docs": [
+    {
+      "filename": "sample_spec_v2.md",
+      "title": "会員登録仕様書 v2",
+      "category": "spec",
+      "is_noise": false,
+      "word_count": 412
+    },
+    {
+      "filename": "auth_design_detail.md",
+      "title": "認証基盤 詳細設計",
+      "category": "design",
+      "is_noise": false,
+      "word_count": 370
+    },
+    {
+      "filename": "error_code_reference.md",
+      "title": "エラーコード リファレンス",
+      "category": "reference",
+      "is_noise": false,
+      "word_count": 468
+    },
+    {
+      "filename": "retention_policy.md",
+      "title": "個人データ保持ポリシー",
+      "category": "policy",
+      "is_noise": false,
+      "word_count": 380
+    },
+    {
+      "filename": "password_policy_faq.md",
+      "title": "パスワードポリシー FAQ",
+      "category": "faq",
+      "is_noise": false,
+      "word_count": 356
+    },
+    {
+      "filename": "session_management_design.md",
+      "title": "セッション管理 設計書",
+      "category": "design",
+      "is_noise": false,
+      "word_count": 369
+    },
+    {
+      "filename": "account_lifecycle_spec.md",
+      "title": "アカウントライフサイクル仕様",
+      "category": "spec",
+      "is_noise": false,
+      "word_count": 364
+    },
+    {
+      "filename": "api_contract_signup.md",
+      "title": "会員登録 API 契約",
+      "category": "contract",
+      "is_noise": false,
+      "word_count": 426
+    },
+    {
+      "filename": "incident_runbook_auth.md",
+      "title": "認証障害ランブック",
+      "category": "runbook",
+      "is_noise": false,
+      "word_count": 417
+    },
+    {
+      "filename": "support_playbook_identity.md",
+      "title": "認証サポート プレイブック",
+      "category": "operations",
+      "is_noise": false,
+      "word_count": 400
+    },
+    {
+      "filename": "data_classification_policy.md",
+      "title": "データ分類と保持マッピング",
+      "category": "policy",
+      "is_noise": false,
+      "word_count": 380
+    },
+    {
+      "filename": "audit_logging_standard.md",
+      "title": "監査ログ標準",
+      "category": "standard",
+      "is_noise": false,
+      "word_count": 344
+    },
+    {
+      "filename": "unrelated_marketing_doc.md",
+      "title": "マーケティング四半期レポート",
+      "category": "noise",
+      "is_noise": true,
+      "word_count": 416
+    },
+    {
+      "filename": "unrelated_company_history.md",
+      "title": "企業沿革アーカイブ",
+      "category": "noise",
+      "is_noise": true,
+      "word_count": 343
+    },
+    {
+      "filename": "unrelated_travel_policy.md",
+      "title": "出張・経費規程",
+      "category": "noise",
+      "is_noise": true,
+      "word_count": 369
+    }
+  ]
+}
