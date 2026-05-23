@@ -1,0 +1,366 @@
+{
+  "phase": "Phase 3 Boost Verification",
+  "bm25_only_recall_at_5_no_boost": 0.8333333333333334,
+  "bm25_only_recall_at_5_boosted": 0.8333333333333334,
+  "boost_alpha": 1.5,
+  "boost_beta": 2.0,
+  "cases": [
+    {
+      "id": "exp-001",
+      "query": "登録済みメールアドレスで会員登録した場合のステータスコードは何ですか？",
+      "special_tokens": [],
+      "expected_docs": [
+        "sample_spec_v2.md",
+        "error_code_reference.md"
+      ],
+      "no_boost_top5_chunks": [
+        [
+          "sample_spec_v2.md",
+          0
+        ],
+        [
+          "error_code_reference.md",
+          0
+        ],
+        [
+          "api_contract_signup.md",
+          0
+        ],
+        [
+          "unrelated_marketing_doc.md",
+          1
+        ],
+        [
+          "incident_runbook_auth.md",
+          0
+        ]
+      ],
+      "boosted_top5_chunks": [
+        [
+          "sample_spec_v2.md",
+          0
+        ],
+        [
+          "error_code_reference.md",
+          0
+        ],
+        [
+          "api_contract_signup.md",
+          0
+        ],
+        [
+          "unrelated_marketing_doc.md",
+          1
+        ],
+        [
+          "incident_runbook_auth.md",
+          0
+        ]
+      ],
+      "no_boost_hit": true,
+      "boosted_hit": true,
+      "no_boost_rank": 1,
+      "boosted_rank": 1,
+      "rank_improved": false
+    },
+    {
+      "id": "exp-002",
+      "query": "重複アカウント登録時の応答コードを教えてください。",
+      "special_tokens": [],
+      "expected_docs": [
+        "api_contract_signup.md",
+        "error_code_reference.md"
+      ],
+      "no_boost_top5_chunks": [
+        [
+          "unrelated_marketing_doc.md",
+          1
+        ],
+        [
+          "account_lifecycle_spec.md",
+          1
+        ],
+        [
+          "retention_policy.md",
+          0
+        ],
+        [
+          "sample_spec_v2.md",
+          0
+        ],
+        [
+          "incident_runbook_auth.md",
+          0
+        ]
+      ],
+      "boosted_top5_chunks": [
+        [
+          "unrelated_marketing_doc.md",
+          1
+        ],
+        [
+          "account_lifecycle_spec.md",
+          1
+        ],
+        [
+          "retention_policy.md",
+          0
+        ],
+        [
+          "sample_spec_v2.md",
+          0
+        ],
+        [
+          "incident_runbook_auth.md",
+          0
+        ]
+      ],
+      "no_boost_hit": false,
+      "boosted_hit": false,
+      "no_boost_rank": null,
+      "boosted_rank": null,
+      "rank_improved": false
+    },
+    {
+      "id": "exp-004",
+      "query": "signup のエンドポイント定義はどの文書にありますか？",
+      "special_tokens": [
+        "signup"
+      ],
+      "expected_docs": [
+        "api_contract_signup.md",
+        "sample_spec_v2.md"
+      ],
+      "no_boost_top5_chunks": [
+        [
+          "api_contract_signup.md",
+          6
+        ],
+        [
+          "api_contract_signup.md",
+          4
+        ],
+        [
+          "api_contract_signup.md",
+          5
+        ],
+        [
+          "api_contract_signup.md",
+          1
+        ],
+        [
+          "api_contract_signup.md",
+          7
+        ]
+      ],
+      "boosted_top5_chunks": [
+        [
+          "api_contract_signup.md",
+          6
+        ],
+        [
+          "api_contract_signup.md",
+          4
+        ],
+        [
+          "api_contract_signup.md",
+          5
+        ],
+        [
+          "api_contract_signup.md",
+          1
+        ],
+        [
+          "api_contract_signup.md",
+          7
+        ]
+      ],
+      "no_boost_hit": true,
+      "boosted_hit": true,
+      "no_boost_rank": 1,
+      "boosted_rank": 1,
+      "rank_improved": false
+    },
+    {
+      "id": "exp-011",
+      "query": "重複メールは 422 ですか、それとも 409 ですか？",
+      "special_tokens": [
+        "422",
+        "409"
+      ],
+      "expected_docs": [
+        "error_code_reference.md",
+        "sample_spec_v2.md"
+      ],
+      "no_boost_top5_chunks": [
+        [
+          "error_code_reference.md",
+          0
+        ],
+        [
+          "sample_spec_v2.md",
+          0
+        ],
+        [
+          "api_contract_signup.md",
+          0
+        ],
+        [
+          "incident_runbook_auth.md",
+          0
+        ],
+        [
+          "account_lifecycle_spec.md",
+          0
+        ]
+      ],
+      "boosted_top5_chunks": [
+        [
+          "error_code_reference.md",
+          0
+        ],
+        [
+          "sample_spec_v2.md",
+          0
+        ],
+        [
+          "api_contract_signup.md",
+          0
+        ],
+        [
+          "incident_runbook_auth.md",
+          0
+        ],
+        [
+          "account_lifecycle_spec.md",
+          0
+        ]
+      ],
+      "no_boost_hit": true,
+      "boosted_hit": true,
+      "no_boost_rank": 1,
+      "boosted_rank": 1,
+      "rank_improved": false
+    },
+    {
+      "id": "exp-006",
+      "query": "監査ログに USER_ID は必須ですか？",
+      "special_tokens": [
+        "USER_ID"
+      ],
+      "expected_docs": [
+        "audit_logging_standard.md"
+      ],
+      "no_boost_top5_chunks": [
+        [
+          "audit_logging_standard.md",
+          6
+        ],
+        [
+          "audit_logging_standard.md",
+          1
+        ],
+        [
+          "audit_logging_standard.md",
+          7
+        ],
+        [
+          "audit_logging_standard.md",
+          4
+        ],
+        [
+          "audit_logging_standard.md",
+          5
+        ]
+      ],
+      "boosted_top5_chunks": [
+        [
+          "audit_logging_standard.md",
+          6
+        ],
+        [
+          "audit_logging_standard.md",
+          1
+        ],
+        [
+          "audit_logging_standard.md",
+          7
+        ],
+        [
+          "audit_logging_standard.md",
+          4
+        ],
+        [
+          "audit_logging_standard.md",
+          5
+        ]
+      ],
+      "no_boost_hit": true,
+      "boosted_hit": true,
+      "no_boost_rank": 1,
+      "boosted_rank": 1,
+      "rank_improved": false
+    },
+    {
+      "id": "exp-017",
+      "query": "メール重複と HTTP 409 のマッピングを教えてください。",
+      "special_tokens": [
+        "HTTP",
+        "409"
+      ],
+      "expected_docs": [
+        "error_code_reference.md",
+        "sample_spec_v2.md"
+      ],
+      "no_boost_top5_chunks": [
+        [
+          "error_code_reference.md",
+          0
+        ],
+        [
+          "sample_spec_v2.md",
+          0
+        ],
+        [
+          "api_contract_signup.md",
+          0
+        ],
+        [
+          "incident_runbook_auth.md",
+          0
+        ],
+        [
+          "api_contract_signup.md",
+          7
+        ]
+      ],
+      "boosted_top5_chunks": [
+        [
+          "error_code_reference.md",
+          0
+        ],
+        [
+          "sample_spec_v2.md",
+          0
+        ],
+        [
+          "api_contract_signup.md",
+          0
+        ],
+        [
+          "incident_runbook_auth.md",
+          0
+        ],
+        [
+          "api_contract_signup.md",
+          7
+        ]
+      ],
+      "no_boost_hit": true,
+      "boosted_hit": true,
+      "no_boost_rank": 1,
+      "boosted_rank": 1,
+      "rank_improved": false
+    }
+  ]
+}

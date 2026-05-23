@@ -1,0 +1,43 @@
+{
+  "unidic_version": "102",
+  "cases": [
+    {
+      "input": "409エラーが発生した",
+      "expected_tokens": [
+        "409"
+      ],
+      "actual_tokens": [
+        "409",
+        "エラー-error",
+        "発生",
+        "為る"
+      ]
+    },
+    {
+      "input": "USER_IDを確認してください",
+      "expected_tokens": [
+        "USER_ID",
+        "確認"
+      ],
+      "actual_tokens": [
+        "USER_ID",
+        "確認",
+        "為る",
+        "下さる"
+      ]
+    },
+    {
+      "input": "パスワードは8文字以上",
+      "expected_tokens": [
+        "パスワード",
+        "文字"
+      ],
+      "actual_tokens": [
+        "パスワード",
+        "8",
+        "文字",
+        "以上"
+      ]
+    }
+  ]
+}

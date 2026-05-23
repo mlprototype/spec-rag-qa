@@ -49,15 +49,21 @@ def markdown_header_chunks(
     # Markdownヘッダーを検知する正規表現
     # ^#{1,6}\s は、「行頭に#が1〜6個あり、その後に空白がある」パターン
     header_pattern = re.compile(r"^#{1,6}\s")
+    code_block_pattern = re.compile(r"^```")
+
+    in_code_block = False
 
     for line in lines:
-        # ヘッダー行を見つけた場合
-        if header_pattern.match(line):
+        if code_block_pattern.match(line):
+            in_code_block = not in_code_block
+
+        # ヘッダー行を見つけた場合 (コードブロック内は除外)
+        if not in_code_block and header_pattern.match(line):
             # すでにバッファに中身があり、かつ一定サイズ以上ならチャンクとして保存
             # (min_chunk_sizeは、空の改行やゴミ等の微細なチャンク生成を防ぐため)
             if buffer:
                 chunk_text = "\n".join(buffer).strip()
-                if len(chunk_text) > 0:
+                if len(chunk_text) >= min_chunk_size:
                     chunks.append(Chunk(doc_id=doc_id, chunk_id=cid, text=chunk_text))
                     cid += 1
                 # バッファをリセット
@@ -72,7 +78,7 @@ def markdown_header_chunks(
     # ループ終了後、バッファに残っている最後のセクションを保存
     if buffer:
         chunk_text = "\n".join(buffer).strip()
-        if len(chunk_text) > 0:
+        if len(chunk_text) >= min_chunk_size:
             chunks.append(Chunk(doc_id=doc_id, chunk_id=cid, text=chunk_text))
 
     return chunks

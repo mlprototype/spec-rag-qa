@@ -14,8 +14,12 @@ from ragqa.config import cfg
 
 # 改善アクションカタログをインポート
 from ragqa.improvement_catalog import get_suggestion
+from ragqa.retrieval_metrics import compute_retrieval_metrics
 
-GROUND_TRUTH_PATH = "data/eval/ground_truth.json"
+# Default keeps current low-cost behavior (5-case set).
+# For expanded benchmark in CI/local, set:
+# RAGQA_EVAL_GROUND_TRUTH_PATH=data/eval/ground_truth_phase0_expanded.json
+GROUND_TRUTH_PATH = os.getenv("RAGQA_EVAL_GROUND_TRUTH_PATH", "data/eval/ground_truth.json")
 REPORT_PATH = "data/eval/report.json"
 TREND_CSV_PATH = "data/eval/trend.csv"
 
@@ -222,8 +226,10 @@ def run_evaluation():
     for i, case in enumerate(cases, 1):
         print(f"[{i}/{len(cases)}] {case['question']} ... ", end="", flush=True)
 
-        # RAG実行
+        # RAG実行 (per-case latency)
+        case_start = time.time()
         result = answer_question(case["question"])
+        latency_ms = (time.time() - case_start) * 1000.0
 
         # --- 評価ロジック ---
         # 1. 自己評価Verdictの一致チェック
@@ -278,6 +284,7 @@ def run_evaluation():
                 "answer": result.answer,
                 "assertion_result": assertion_msg,
                 "citations": [f"{s.doc_id}#{s.chunk_id}" for s in result.sources],
+                "latency_ms": round(latency_ms, 3),
             }
         )
 
@@ -304,9 +311,11 @@ def run_evaluation():
         "score": passed_count / total_cases * 100 if total_cases else 0,
         "time_sec": round(elapsed, 2),
     }
+    retrieval = compute_retrieval_metrics(cases, results)
 
     report = {
         "summary": summary,
+        "retrieval": retrieval,
         "distribution": distribution,
         "trend_hint": trend_hint,
         "details": results,
@@ -322,6 +331,14 @@ def run_evaluation():
     print("AI-Judge Evaluation Report Generated")
     print(f"Score: {summary['score']:.1f}% ({passed_count}/{total_cases})")
     print(f"Time: {summary['time_sec']}s")
+    print(
+        "Retrieval: "
+        f"Recall@1={retrieval['recall_at_1']:.4f} "
+        f"Recall@5={retrieval['recall_at_5']:.4f} "
+        f"MRR={retrieval['mrr']:.4f} "
+        f"FailureRate={retrieval['failure_rate']:.4f} "
+        f"(evaluable={retrieval['evaluable_cases']}/{retrieval['total_cases']})"
+    )
 
     for t, v in by_type_score.items():
         type_score = sum(v) / len(v) * 100

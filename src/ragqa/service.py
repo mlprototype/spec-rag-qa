@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from .config import cfg
-from .embedder import Embedder
+from .hybrid_retriever import HybridRetriever
 from .llm import run_llm
 from .prompt import build_prompt
 from .schemas import AnswerResult, Source, Verification
@@ -11,7 +11,6 @@ from .utils import (
     build_evidence_check_prompt,
     # merge_missing_points_into_answer は削除（使用しないため）
 )
-from .vectorstore import VectorStore
 
 
 if cfg.enable_langsmith and cfg.langsmith_tracing and cfg.langsmith_api_key:
@@ -31,16 +30,10 @@ def answer_question(question: str) -> AnswerResult:
     質問を受け取り、RAGを実行し、検証結果を含めた構造化データを返す。
     UI依存（printなど）は一切行わない。
     """
-    # 1. インデックスのロード
-    if not cfg.faiss_index_path.exists() or not cfg.meta_path.exists():
-        raise FileNotFoundError("Index not found. Run ingest first.")
-
-    vs = VectorStore.load(cfg.faiss_index_path, cfg.meta_path)
-    embedder = Embedder()
-    q_emb = embedder.embed_query(question)
-
-    # 2. 検索 (Retrieve)
-    hits = vs.search(q_emb, cfg.top_k)
+    # 1. 検索 (Retrieve)
+    # 例外ガードは HybridRetriever.load() に統一
+    retriever = HybridRetriever.load()
+    hits = retriever.retrieve(question)
 
     # Sourceオブジェクトのリストに変換
     sources = [

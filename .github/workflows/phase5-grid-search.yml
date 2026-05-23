@@ -1,0 +1,68 @@
+name: Phase 5 Grid Search
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 2 * * *"
+
+jobs:
+  phase5-grid-search:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+
+    - name: Cache HuggingFace model
+      id: hf-cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/huggingface
+        key: hf-${{ runner.os }}-${{ hashFiles('requirements.txt') }}-all-MiniLM-L6-v2
+
+    - name: Pre-download model (if not cached)
+      if: steps.hf-cache.outputs.cache-hit != 'true'
+      run: |
+        python -c "
+        from sentence_transformers import SentenceTransformer
+        SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+        "
+
+    - name: Build index for expanded corpus
+      env:
+        TRANSFORMERS_OFFLINE: "1"
+        HF_DATASETS_OFFLINE: "1"
+        RAGQA_DOCS_DIR: data/phase0_expanded/docs
+        PYTHONPATH: src
+      run: |
+        python -m ragqa.ingest
+
+    - name: Run phase5 grid search
+      env:
+        TRANSFORMERS_OFFLINE: "1"
+        HF_DATASETS_OFFLINE: "1"
+        RAGQA_DOCS_DIR: data/phase0_expanded/docs
+        RETRIEVAL_GROUND_TRUTH_PATH: data/eval/ground_truth_phase0_expanded.json
+        RETRIEVAL_BASELINE_PATH: data/eval/phase0_vector_baseline_expanded.json
+        PYTHONPATH: src
+      run: |
+        python scripts/run_phase5_grid_search.py --topn 10
+
+    - name: Upload phase5 artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: phase5-grid-search-artifacts
+        path: |
+          data/eval/phase5_grid_search_report.json
+          data/eval/phase5_best_config.json
+          data/eval/phase5_grid_search_report.md
