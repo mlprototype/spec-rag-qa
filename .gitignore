@@ -231,3 +231,8 @@ data/eval/*baseline*
 .DS_Store
 **/.DS_Store
 
+# Rule and helper scripts
+GEMINI.md
+merge_code.py
+
+
