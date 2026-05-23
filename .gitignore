@@ -222,3 +222,12 @@ _all_project_code.txt
 
 # Generated diagrams (not committed)
 artifacts/diagrams/
+
+# Local indexes and eval baselines (generated)
+data/index/
+data/eval/*baseline*
+
+# OS generated files
+.DS_Store
+**/.DS_Store
+

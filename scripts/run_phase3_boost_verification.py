@@ -106,8 +106,12 @@ def main() -> None:
     print()
     print("=" * 70)
     for case in VERIFY_CASES:
+        # dictから取得した値が型推論でUnion型 (list[str] | str) になるため、
+        # 静的型チェック（Pyright）で安全に型を絞り込めるよう明示的にアサートする。
         query = case["query"]
+        assert isinstance(query, str)
         expected = case["expected_docs"]
+        assert isinstance(expected, list)
         special_toks = detect_special_tokens(query)
 
         no_boost_top5 = _top5_chunks(
