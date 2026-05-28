@@ -1,0 +1,84 @@
+{
+  "phase": "Phase 0",
+  "mode": "vector_only",
+  "metric_definition": {
+    "recall_at_5": "sources が設定されているケースで、top5に期待doc_idが1件以上含まれる割合",
+    "mrr": "sources が設定されているケースでの Reciprocal Rank 平均（top_k=5）",
+    "failure_rate": "1 - recall_at_5（retrieval miss rate）",
+    "p95_latency_ms": "1クエリあたり retrieval（embed_query + faiss search）の95パーセンタイル"
+  },
+  "top_k": 5,
+  "summary": {
+    "total_cases": 5,
+    "retrieval_evaluable_cases": 3,
+    "recall_at_5": 1.0,
+    "mrr": 0.833333,
+    "failure_rate": 0.0,
+    "p95_latency_ms": 18.271,
+    "p50_latency_ms": 5.418
+  },
+  "cases": [
+    {
+      "id": "qa-001",
+      "question": "パスワードの必須条件を教えて",
+      "expected_sources": [
+        "sample_spec.md"
+      ],
+      "retrieved_doc_ids_top_k": [
+        "sample_spec.md",
+        "sample_design.md"
+      ],
+      "first_relevant_rank": 1,
+      "latency_ms": 21.425
+    },
+    {
+      "id": "qa-002",
+      "question": "登録済みのメールアドレスを使用した時のエラーコードは？",
+      "expected_sources": [
+        "sample_spec.md",
+        "sample_design.md"
+      ],
+      "retrieved_doc_ids_top_k": [
+        "sample_spec.md",
+        "sample_design.md"
+      ],
+      "first_relevant_rank": 1,
+      "latency_ms": 5.418
+    },
+    {
+      "id": "qa-003",
+      "question": "退会したユーザーのデータ保持期間はどのくらい？",
+      "expected_sources": [],
+      "retrieved_doc_ids_top_k": [
+        "sample_spec.md",
+        "sample_design.md"
+      ],
+      "first_relevant_rank": null,
+      "latency_ms": 5.656
+    },
+    {
+      "id": "qa-004",
+      "question": "パスワードに英数字の混在は必須ですか？",
+      "expected_sources": [
+        "sample_design.md"
+      ],
+      "retrieved_doc_ids_top_k": [
+        "sample_spec.md",
+        "sample_design.md"
+      ],
+      "first_relevant_rank": 2,
+      "latency_ms": 4.177
+    },
+    {
+      "id": "qa-005",
+      "question": "この仕様はユーザーにとって使いやすいですか？",
+      "expected_sources": [],
+      "retrieved_doc_ids_top_k": [
+        "sample_spec.md",
+        "sample_design.md"
+      ],
+      "first_relevant_rank": null,
+      "latency_ms": 4.191
+    }
+  ]
+}

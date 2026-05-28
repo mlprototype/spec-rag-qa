@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import importlib.util
 from pathlib import Path
 
@@ -12,6 +13,20 @@ def _load_phase5_module():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def test_gs00_default_baseline_is_available_for_ci_grid_search():
+    root = Path(__file__).resolve().parents[1]
+    baseline_path = root / "data" / "eval" / "phase0_vector_baseline_expanded.json"
+    assert baseline_path.exists(), (
+        "Phase 5 grid search requires the expanded Phase 0 baseline file in CI."
+    )
+
+    payload = json.loads(baseline_path.read_text(encoding="utf-8"))
+    summary = payload.get("summary")
+    assert isinstance(summary, dict)
+    for key in ("recall_at_5", "mrr", "failure_rate"):
+        assert key in summary
 
 
 def test_gs01_stage1_param_count_and_fixed_boost():
