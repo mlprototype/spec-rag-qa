@@ -143,7 +143,6 @@ jobs:
 
     - name: Monitor retrieval metrics (from report.json)
       env:
-        RETRIEVAL_BASELINE_PATH: data/eval/phase0_vector_baseline.json
         RETRIEVAL_RECALL5_MIN_RATIO: "0.90"
         RETRIEVAL_MRR_MIN_RATIO: "0.90"
         RETRIEVAL_FAILURE_MAX_RATIO: "1.20"
