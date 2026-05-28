@@ -226,7 +226,6 @@ artifacts/diagrams/
 # Local indexes and generated baseline reports
 data/index/
 data/eval/*baseline*
-!data/eval/phase0_vector_baseline.json
 !data/eval/phase0_vector_baseline_expanded.json
 
 # OS generated files
@@ -236,5 +235,4 @@ data/eval/*baseline*
 # Rule and helper scripts
 GEMINI.md
 merge_code.py
-
 
