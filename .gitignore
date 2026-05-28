@@ -223,9 +223,11 @@ _all_project_code.txt
 # Generated diagrams (not committed)
 artifacts/diagrams/
 
-# Local indexes and eval baselines (generated)
+# Local indexes and generated baseline reports
 data/index/
 data/eval/*baseline*
+!data/eval/phase0_vector_baseline.json
+!data/eval/phase0_vector_baseline_expanded.json
 
 # OS generated files
 .DS_Store

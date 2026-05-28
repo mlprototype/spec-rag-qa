@@ -1,0 +1,467 @@
+{
+  "phase": "Phase 0 Expanded",
+  "mode": "vector_only",
+  "seed": 20260223,
+  "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+  "top_k": 5,
+  "metric_definition": {
+    "recall_at_1": "expected_sources があるケースで top1 に正解docが含まれる割合",
+    "recall_at_5": "expected_sources があるケースで top5 に正解docが1件以上含まれる割合",
+    "mrr": "expected_sources があるケースの reciprocal rank 平均（top_k=5）",
+    "failure_rate": "1 - recall_at_5（retrieval miss rate）",
+    "p95_latency_ms": "1クエリあたり retrieval（embed_query + faiss search）の95パーセンタイル",
+    "p50_latency_ms": "1クエリあたり retrieval（embed_query + faiss search）の50パーセンタイル"
+  },
+  "summary": {
+    "total_cases": 25,
+    "retrieval_evaluable_cases": 20,
+    "no_source_cases": 5,
+    "recall_at_1": 0.3,
+    "recall_at_5": 0.8,
+    "mrr": 0.4475,
+    "failure_rate": 0.2,
+    "p95_latency_ms": 5.224,
+    "p50_latency_ms": 4.299
+  },
+  "cases": [
+    {
+      "id": "exp-001",
+      "question": "登録済みメールアドレスで会員登録した場合のステータスコードは何ですか？",
+      "type": "factual_basic",
+      "expected_sources": [
+        "sample_spec_v2.md",
+        "error_code_reference.md"
+      ],
+      "retrieved_doc_ids_top_k": [
+        "support_playbook_identity.md",
+        "account_lifecycle_spec.md",
+        "incident_runbook_auth.md",
+        "unrelated_marketing_doc.md",
+        "unrelated_marketing_doc.md"
+      ],
+      "first_relevant_rank": null,
+      "latency_ms": 9.063
+    },
+    {
+      "id": "exp-002",
+      "question": "重複アカウント登録時の応答コードを教えてください。",
+      "type": "paraphrase",
+      "expected_sources": [
+        "api_contract_signup.md",
+        "error_code_reference.md"
+      ],
+      "retrieved_doc_ids_top_k": [
+        "account_lifecycle_spec.md",
+        "unrelated_marketing_doc.md",
+        "support_playbook_identity.md",
+        "password_policy_faq.md",
+        "unrelated_marketing_doc.md"
+      ],
+      "first_relevant_rank": null,
+      "latency_ms": 4.881
+    },
+    {
+      "id": "exp-003",
+      "question": "英数字混在のパスワードは今すぐ必須ですか、それとも推奨ですか？",
+      "type": "priority_conflict",
+      "expected_sources": [
+        "sample_spec_v2.md",
+        "auth_design_detail.md",
+        "password_policy_faq.md"
+      ],
+      "retrieved_doc_ids_top_k": [
+        "auth_design_detail.md",
+        "password_policy_faq.md",
+        "account_lifecycle_spec.md",
+        "unrelated_marketing_doc.md",
+        "support_playbook_identity.md"
+      ],
+      "first_relevant_rank": 1,
+      "latency_ms": 4.58
+    },
+    {
+      "id": "exp-004",
+      "question": "signup のエンドポイント定義はどの文書にありますか？",
+      "type": "factual_basic",
+      "expected_sources": [
+        "api_contract_signup.md",
+        "sample_spec_v2.md"
+      ],
+      "retrieved_doc_ids_top_k": [
+        "account_lifecycle_spec.md",
+        "unrelated_marketing_doc.md",
+        "support_playbook_identity.md",
+        "unrelated_marketing_doc.md",
+        "retention_policy.md"
+      ],
+      "first_relevant_rank": null,
+      "latency_ms": 3.703
+    },
+    {
+      "id": "exp-005",
+      "question": "アカウント削除後、プロフィールデータは何日後にパージされますか？",
+      "type": "cross_doc",
+      "expected_sources": [
+        "retention_policy.md",
+        "account_lifecycle_spec.md"
+      ],
+      "retrieved_doc_ids_top_k": [
+        "account_lifecycle_spec.md",
+        "retention_policy.md",
+        "unrelated_marketing_doc.md",
+        "support_playbook_identity.md",
+        "session_management_design.md"
+      ],
+      "first_relevant_rank": 1,
+      "latency_ms": 5.176
+    },
+    {
+      "id": "exp-006",
+      "question": "USER_ID を監査ログに必須とする記載はどこですか？",
+      "type": "factual_basic",
+      "expected_sources": [
+        "audit_logging_standard.md"
+      ],
+      "retrieved_doc_ids_top_k": [
+        "audit_logging_standard.md",
+        "unrelated_marketing_doc.md",
+        "account_lifecycle_spec.md",
+        "auth_design_detail.md",
+        "session_management_design.md"
+      ],
+      "first_relevant_rank": 1,
+      "latency_ms": 4.283
+    },
+    {
+      "id": "exp-007",
+      "question": "409エラーが継続したとき、サポートの最初の対応は何ですか？",
+      "type": "cross_doc",
+      "expected_sources": [
+        "support_playbook_identity.md",
+        "incident_runbook_auth.md"
+      ],
+      "retrieved_doc_ids_top_k": [
+        "unrelated_marketing_doc.md",
+        "account_lifecycle_spec.md",
+        "support_playbook_identity.md",
+        "incident_runbook_auth.md",
+        "retention_policy.md"
+      ],
+      "first_relevant_rank": 3,
+      "latency_ms": 4.299
+    },
+    {
+      "id": "exp-008",
+      "question": "対話セッションのアイドルタイムアウトは何分ですか？",
+      "type": "factual_basic",
+      "expected_sources": [
+        "session_management_design.md"
+      ],
+      "retrieved_doc_ids_top_k": [
+        "account_lifecycle_spec.md",
+        "unrelated_marketing_doc.md",
+        "support_playbook_identity.md",
+        "session_management_design.md",
+        "password_policy_faq.md"
+      ],
+      "first_relevant_rank": 4,
+      "latency_ms": 3.412
+    },
+    {
+      "id": "exp-009",
+      "question": "パスワード再設定の例外経路はどこに書かれていますか？",
+      "type": "paraphrase",
+      "expected_sources": [
+        "auth_design_detail.md",
+        "support_playbook_identity.md"
+      ],
+      "retrieved_doc_ids_top_k": [
+        "account_lifecycle_spec.md",
+        "unrelated_marketing_doc.md",
+        "support_playbook_identity.md",
+        "password_policy_faq.md",
+        "unrelated_marketing_doc.md"
+      ],
+      "first_relevant_rank": 3,
+      "latency_ms": 4.2
+    },
+    {
+      "id": "exp-010",
+      "question": "データ分類と保持マッピングを定義している文書はどれですか？",
+      "type": "factual_basic",
+      "expected_sources": [
+        "data_classification_policy.md"
+      ],
+      "retrieved_doc_ids_top_k": [
+        "unrelated_marketing_doc.md",
+        "account_lifecycle_spec.md",
+        "retention_policy.md",
+        "unrelated_company_history.md",
+        "data_classification_policy.md"
+      ],
+      "first_relevant_rank": 5,
+      "latency_ms": 4.485
+    },
+    {
+      "id": "exp-011",
+      "question": "重複メールは 422 ですか、それとも 409 ですか？",
+      "type": "misleading",
+      "expected_sources": [
+        "error_code_reference.md",
+        "sample_spec_v2.md"
+      ],
+      "retrieved_doc_ids_top_k": [
+        "unrelated_marketing_doc.md",
+        "session_management_design.md",
+        "account_lifecycle_spec.md",
+        "unrelated_marketing_doc.md",
+        "unrelated_company_history.md"
+      ],
+      "first_relevant_rank": null,
+      "latency_ms": 4.209
+    },
+    {
+      "id": "exp-012",
+      "question": "最終パージ前に存在するアカウント状態を教えてください。",
+      "type": "cross_doc",
+      "expected_sources": [
+        "account_lifecycle_spec.md"
+      ],
+      "retrieved_doc_ids_top_k": [
+        "account_lifecycle_spec.md",
+        "support_playbook_identity.md",
+        "unrelated_marketing_doc.md",
+        "password_policy_faq.md",
+        "auth_design_detail.md"
+      ],
+      "first_relevant_rank": 1,
+      "latency_ms": 3.608
+    },
+    {
+      "id": "exp-013",
+      "question": "認証インシデントのトリアージ手順はどこにありますか？",
+      "type": "factual_basic",
+      "expected_sources": [
+        "incident_runbook_auth.md"
+      ],
+      "retrieved_doc_ids_top_k": [
+        "account_lifecycle_spec.md",
+        "unrelated_marketing_doc.md",
+        "support_playbook_identity.md",
+        "incident_runbook_auth.md",
+        "unrelated_company_history.md"
+      ],
+      "first_relevant_rank": 4,
+      "latency_ms": 4.373
+    },
+    {
+      "id": "exp-014",
+      "question": "パスワード複雑性は強制要件ではなくガイダンスだと書かれているのはどれですか？",
+      "type": "paraphrase",
+      "expected_sources": [
+        "password_policy_faq.md",
+        "auth_design_detail.md"
+      ],
+      "retrieved_doc_ids_top_k": [
+        "account_lifecycle_spec.md",
+        "unrelated_marketing_doc.md",
+        "password_policy_faq.md",
+        "support_playbook_identity.md",
+        "session_management_design.md"
+      ],
+      "first_relevant_rank": 3,
+      "latency_ms": 5.232
+    },
+    {
+      "id": "exp-015",
+      "question": "signup リクエストの項目（email/password/locale）はどこに定義されていますか？",
+      "type": "factual_basic",
+      "expected_sources": [
+        "api_contract_signup.md",
+        "sample_spec_v2.md"
+      ],
+      "retrieved_doc_ids_top_k": [
+        "api_contract_signup.md",
+        "unrelated_marketing_doc.md",
+        "account_lifecycle_spec.md",
+        "unrelated_marketing_doc.md",
+        "auth_design_detail.md"
+      ],
+      "first_relevant_rank": 1,
+      "latency_ms": 4.57
+    },
+    {
+      "id": "exp-016",
+      "question": "セキュリティ監査ログの保持期間を定義している資料はどれですか？",
+      "type": "cross_doc",
+      "expected_sources": [
+        "audit_logging_standard.md",
+        "retention_policy.md"
+      ],
+      "retrieved_doc_ids_top_k": [
+        "retention_policy.md",
+        "unrelated_marketing_doc.md",
+        "unrelated_company_history.md",
+        "account_lifecycle_spec.md",
+        "support_playbook_identity.md"
+      ],
+      "first_relevant_rank": 1,
+      "latency_ms": 3.953
+    },
+    {
+      "id": "exp-017",
+      "question": "メール重複と HTTP 409 の対応を明示している箇所はどこですか？",
+      "type": "factual_basic",
+      "expected_sources": [
+        "sample_spec_v2.md",
+        "error_code_reference.md"
+      ],
+      "retrieved_doc_ids_top_k": [
+        "incident_runbook_auth.md",
+        "unrelated_marketing_doc.md",
+        "password_policy_faq.md",
+        "error_code_reference.md",
+        "auth_design_detail.md"
+      ],
+      "first_relevant_rank": 4,
+      "latency_ms": 5.016
+    },
+    {
+      "id": "exp-018",
+      "question": "アカウントロック時の連絡テンプレートについて書かれている資料は？",
+      "type": "factual_basic",
+      "expected_sources": [
+        "support_playbook_identity.md"
+      ],
+      "retrieved_doc_ids_top_k": [
+        "account_lifecycle_spec.md",
+        "unrelated_marketing_doc.md",
+        "support_playbook_identity.md",
+        "password_policy_faq.md",
+        "retention_policy.md"
+      ],
+      "first_relevant_rank": 3,
+      "latency_ms": 4.547
+    },
+    {
+      "id": "exp-019",
+      "question": "停止と削除の分岐判断フローはどこに記載されていますか？",
+      "type": "ambiguity",
+      "expected_sources": [
+        "account_lifecycle_spec.md",
+        "retention_policy.md"
+      ],
+      "retrieved_doc_ids_top_k": [
+        "unrelated_marketing_doc.md",
+        "unrelated_company_history.md",
+        "retention_policy.md",
+        "unrelated_travel_policy.md",
+        "account_lifecycle_spec.md"
+      ],
+      "first_relevant_rank": 3,
+      "latency_ms": 3.886
+    },
+    {
+      "id": "exp-020",
+      "question": "競合処理とエスカレーショントリガーの両方に触れている資料はどれですか？",
+      "type": "cross_doc",
+      "expected_sources": [
+        "incident_runbook_auth.md",
+        "error_code_reference.md"
+      ],
+      "retrieved_doc_ids_top_k": [
+        "support_playbook_identity.md",
+        "account_lifecycle_spec.md",
+        "incident_runbook_auth.md",
+        "unrelated_marketing_doc.md",
+        "retention_policy.md"
+      ],
+      "first_relevant_rank": 3,
+      "latency_ms": 3.961
+    },
+    {
+      "id": "exp-021",
+      "question": "アバター画像の最大アップロード容量は何MBですか？",
+      "type": "omission_detection",
+      "expected_sources": [],
+      "retrieved_doc_ids_top_k": [
+        "account_lifecycle_spec.md",
+        "unrelated_marketing_doc.md",
+        "support_playbook_identity.md",
+        "password_policy_faq.md",
+        "retention_policy.md"
+      ],
+      "first_relevant_rank": null,
+      "latency_ms": 4.704
+    },
+    {
+      "id": "exp-022",
+      "question": "Appleソーシャルログインは標準で有効ですか？",
+      "type": "omission_detection",
+      "expected_sources": [],
+      "retrieved_doc_ids_top_k": [
+        "auth_design_detail.md",
+        "unrelated_company_history.md",
+        "account_lifecycle_spec.md",
+        "unrelated_marketing_doc.md",
+        "unrelated_travel_policy.md"
+      ],
+      "first_relevant_rank": null,
+      "latency_ms": 4.289
+    },
+    {
+      "id": "exp-023",
+      "question": "ダークモードのプライマリボタンデザイントークンは何ですか？",
+      "type": "opinion_guard",
+      "expected_sources": [],
+      "retrieved_doc_ids_top_k": [
+        "account_lifecycle_spec.md",
+        "unrelated_marketing_doc.md",
+        "support_playbook_identity.md",
+        "retention_policy.md",
+        "incident_runbook_auth.md"
+      ],
+      "first_relevant_rank": null,
+      "latency_ms": 3.563
+    },
+    {
+      "id": "exp-024",
+      "question": "管理者ロールに生体認証は必須ですか？",
+      "type": "omission_detection",
+      "expected_sources": [],
+      "retrieved_doc_ids_top_k": [
+        "unrelated_marketing_doc.md",
+        "account_lifecycle_spec.md",
+        "retention_policy.md",
+        "audit_logging_standard.md",
+        "password_policy_faq.md"
+      ],
+      "first_relevant_rank": null,
+      "latency_ms": 3.292
+    },
+    {
+      "id": "exp-025",
+      "question": "電話サポートの応答SLAは何分ですか？",
+      "type": "omission_detection",
+      "expected_sources": [],
+      "retrieved_doc_ids_top_k": [
+        "unrelated_marketing_doc.md",
+        "support_playbook_identity.md",
+        "account_lifecycle_spec.md",
+        "retention_policy.md",
+        "password_policy_faq.md"
+      ],
+      "first_relevant_rank": null,
+      "latency_ms": 5.189
+    }
+  ],
+  "comparison_to_previous_phase0": {
+    "legacy_file": "data/eval/phase0_vector_baseline.json",
+    "old_retrieval_evaluable_cases": 3,
+    "new_retrieval_evaluable_cases": 20,
+    "delta_recall_at_5": -0.2,
+    "delta_mrr": -0.385833,
+    "delta_failure_rate": 0.2,
+    "delta_p95_latency_ms": -13.047
+  }
+}
