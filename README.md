@@ -1,17 +1,20 @@
-# Spec RAG QA
+# Retrieval品質管理システム（Retrieval Quality Management）
 
-Spec RAG QA は、仕様書QA向けのRAGを題材に、Retrieval 品質を継続的に測定・比較・最適化・統治するためのシステムです。  
-主役は RAG アプリ本体ではなく、Quality Contract（評価条件の不変式）、品質ラチェット（baseline-relative SLO）、3軸の再現性担保、SLO 制約付き Grid Search を備えた Retrieval 品質管理の運用基盤にあります。
+> 仕様書QA向けRAGにおけるRetrieval品質管理の運用基盤
 
-## プロジェクト概要
+## ポートフォリオ内での位置づけ
 
-RAG の改善は、チャンク設計、BM25 設定、ハイブリッド検索の重み付けを少し変えるだけでも品質が動きます。  
-一方で、評価が属人的だと「良くなったのか」「安全に悪化していないか」を継続的に判断できません。
+本リポジトリは、生成AIを業務システムへ安全に導入するための
+「品質保証 × 動的制御 × 運用統治」3層構成のポートフォリオの
+**第1弾「品質保証」** に位置づけられます。
 
-このプロジェクトは、Retrieval を固定条件で評価できる ground truth と baseline を持ち、Recall@K、MRR、FailureRate、Latency を用いて検索品質を継続管理します。  
-そのうえで、SLO を満たす変更だけを CI で通し、SLO 制約の中で Grid Search により改善候補を探索できるようにしています。
+| 位置 | リポジトリ | レイヤー |
+|---|---|---|
+| **第1弾** | **本リポジトリ（Retrieval品質管理システム）** | **品質保証** |
+| 第2弾 | [Agentic RAG with Control Plane](https://github.com/mlprototype/ai-agent-rag) | 動的制御 |
+| 第3弾 | [Policy-Aware Multi-LLM Gateway](https://github.com/mlprototype/policy-aware-llm-gateway) | 運用統治 |
 
-## 何を解決するか
+## 解決する課題
 
 - Retrieval 改善のたびに品質が揺れる問題
 - 「それっぽく良くなった」に依存した主観的な判断
@@ -22,22 +25,15 @@ RAG の改善は、チャンク設計、BM25 設定、ハイブリッド検索�
 本システムは、Retrieval 評価を LLM 回答評価から分離し、検索品質そのものを機械的に測定できるようにします。  
 その結果、品質回帰防止、比較可能性、安全制約付き最適化を一つの運用ループとして扱えます。
 
-## 設計思想
+## システム概要
 
-このシステムの設計思想は、比較可能性と監査可能性を優先することにあります。主要な設計判断は次の 4 点です。
+RAG の改善は、チャンク設計、BM25 設定、ハイブリッド検索の重み付けを少し変えるだけでも品質が動きます。  
+一方で、評価が属人的だと「良くなったのか」「安全に悪化していないか」を継続的に判断できません。
 
-- Retrieval 評価と LLM 評価の分離:
-  `expected_sources` による機械評価と `expected_verdict` / `assertion` による回答評価を分ける。引き換えとして、LLM 応答品質との因果の切り分けは別ベンチに委ねる。
-- 3層 + Quality Contract の疎結合設計:
-  測定層は citations と latency だけを見て判定し、検索アルゴリズムを直接知らない。引き換えとして、層間契約の設計コストが発生する。
-- Bayesian Optimization ではなく Grid Search:
-  全探索点を決定論的に評価し、完全な監査証跡を残す。引き換えとして、履歴依存の探索より計算効率は劣る。
-- baseline-relative SLO（品質ラチェット）:
-  baseline 更新に追随して合格基準も引き上がる。引き換えとして、baseline 更新時の運用フローが追加で必要になる。
+このプロジェクトは、Retrieval を固定条件で評価できる ground truth と baseline を持ち、Recall@K、MRR、FailureRate、Latency を用いて検索品質を継続管理します。  
+そのうえで、SLO を満たす変更だけを CI で通し、SLO 制約の中で Grid Search により改善候補を探索できるようにしています。
 
-実装上は、ground truth に含まれる `question`、`expected_sources`、`expected_verdict`、`assertion` の組が、事実上の Quality Contract として機能しています。
-
-## アーキテクチャ概要
+## アーキテクチャ
 
 このシステムは、RAG の回答生成そのものよりも、Retrieval 品質を継続的に測定・比較・最適化するための品質管理ループを中心に設計しています。
 
@@ -133,6 +129,40 @@ flowchart TB
 Layer 1 には検索エンジン層を直接利用する CLI / API エンドポイント向けの回答コンテキスト生成も含めています。  
 Layer 2 は意図的に Layer 1 の内部アルゴリズムを知りません。`compute_retrieval_metrics()` が受け取るのは `id`、`citations`、`latency_ms` を持つ details リストであり、FAISS、BM25、RRF の実装詳細には依存しないため、検索アルゴリズムの変更と品質判定の基準を疎結合に保てます。
 
+## 設計思想
+
+このシステムの設計思想は、比較可能性と監査可能性を優先することにあります。主要な設計判断は次の 4 点です。
+
+#### 1. Retrieval評価とLLM評価の完全分離（関心事の分離）
+* **アプローチ**: `expected_sources` による検索エンジン性能（インフラ層）の機械評価と、`expected_verdict / assertion` による回答品質（アプリケーション層）のLLM評価を明確に分離。
+* **トレードオフ**: 検索品質のデグレードと、最終的なLLM応答品質との間の定性的な因果関係の切り分けは、上位レイヤーのベンチマーク環境に委ねる設計を選択。
+
+#### 2. 3層構造 × Quality Contract による疎結合設計（非依存性の担保）
+* **アプローチ**: 測定レイヤーは `citations`（参照ソース）と `latency`（応答速度）のメタデータのみを監視して合否を判定。背後の検索アルゴリズムやハイパーパラメータの具体的実装を直接参照しない設計。
+* **トレードオフ**: レイヤー間の結合度を極限まで下げる引き換えとして、層間契約（Interface）の定義および管理コストを許容。
+
+#### 3. 監査証跡を重視した決定論的 Grid Search の採用（再現性の担保）
+* **アプローチ**: ベイズ最適化（Bayesian Optimization）などの確率的探索をあえて避け、設定した全探索点を決定論的に評価。CI/CDプロセスにおいて、いつ、どのパラメータで、なぜそのスコアが出たかの完全な監査証跡（Audit Trail）を保持。
+* **トレードオフ**: 過去の履歴に依存する適応型探索（履歴依存探索）と比較し、パラメータ空間の探索における計算効率（時間・コスト）の劣後を許容。
+
+#### 4. baseline-relative SLO による品質ラチェット機構（継続的向上の自動化）
+* **アプローチ**: 絶対値による閾値管理ではなく、過去の最良スコア（Baseline）の更新に追随して自動的に合格基準が引き上がる「品質ラチェット機構」を導入。
+* **トレードオフ**: システム性能向上に伴うSLOの自動厳格化と引き換えに、意図的なベースライン更新・リセット時における明確な運用フロー（ガバナンス）の追加を許容。
+
+
+## 技術スタック
+
+| カテゴリ | 技術 | 概要 / 役割 |
+|:---|:---|:---|
+| **言語** | Python | システム開発、評価スクリプトの実装 |
+| **検索ライブラリ** | FAISS (`faiss-cpu`) | 密ベクトル検索（Layer 1） |
+| **日本語解析** | `fugashi`, `unidic-lite` | 日本語トークナイザーの実装（Layer 1） |
+| **モデル・埋め込み** | `sentence-transformers` | テキストのベクトル埋め込み（Layer 1） |
+| **LLM統合** | OpenAI API (`openai`) | 回答品質の評価（Layer 2 / evaluate.py） |
+| **Webフレームワーク** | FastAPI, Uvicorn | APIサーバーの提供 |
+| **テスト・評価** | pytest | 検索ロジックおよび評価ロジックのテスト |
+| **トラッキング** | LangSmith (`langsmith`) | 評価結果・トレースの可視化 |
+
 ## Phase 進化
 
 このシステムの Phase は、機能追加の履歴というより、比較の信頼性を段階的に強化してきた履歴です。
@@ -218,81 +248,9 @@ flowchart LR
    stage1 の最良候補を固定し、`boost_alpha` と `boost_beta` を探索する
 
 現実装が Bayesian Optimization ではなく Grid Search を採用している理由は、探索点が最初から明示され、全 trial が決定論的に評価され、結果が JSON / Markdown レポートとして完全な監査証跡に残るためです。履歴依存の探索より計算効率は劣る一方、再現性と説明可能性は高く保てます。
-なお、これらの指標が真の品質を完全には代表しないという Goodhart's Law 的リスクを意識し、Known Limitations にて4観点のリスクを管理対象として明示している。
+なお、これらの指標が真の品質を完全には代表しないという Goodhart's Law 的リスクを意識し、既知の制限にて4観点のリスクを管理対象として明示している。
 
-## ディレクトリ構成
-
-```text
-spec-rag-qa/
-├── .github/
-│   └── workflows/
-│       ├── phase5-grid-search.yml          # Phase 5: Grid Search用CI
-│       └── ragqa-quality-gate.yml          # 品質ゲート（PRフック）
-├── data/                                   # データディレクトリ
-│   ├── docs/                               # インジェスト元ドキュメント
-│   ├── eval/                               # 評価データ群 (Ground Truth / Baseline)
-│   ├── index/                              # 構築済みインデックス (FAISS / BM25)
-│   └── phase0_expanded/                    # Phase0拡張コーパス
-├── docs/                                   # 設計ドキュメント類
-├── scripts/                                # バッチスクリプト
-│   ├── run_phase0_expanded_baseline.py     # ベースライン作成
-│   ├── run_phase3_boost_verification.py    # BM25 Boost効果検証
-│   ├── run_phase4_retrieval_eval.py        # 検索評価実行
-│   └── run_phase5_grid_search.py           # グリッドサーチ実行
-├── src/
-│   ├── evaluator/                          # カスタム評価用ロジック
-│   │   ├── evaluator.py
-│   │   └── fail_detector.py
-│   ├── ragqa/                              # コアパッケージ
-│   │   ├── ask.py                          # 質問応答（CLI）
-│   │   ├── bm25_store.py                   # BM25 実装
-│   │   ├── chunking.py                     # チャンキング処理
-│   │   ├── config.py                       # 設定ファイル
-│   │   ├── embedder.py                     # 埋め込みモデル
-│   │   ├── evaluate.py                     # 回答評価ロジック
-│   │   ├── hybrid_retriever.py             # 検索ロジック (Vector + Keyword)
-│   │   ├── improvement_catalog.py          # 改善カタログ
-│   │   ├── ingest.py                       # 取り込みロジック
-│   │   ├── llm.py                          # LLM呼び出し
-│   │   ├── prompt.py                       # プロンプト管理
-│   │   ├── retrieval_metrics.py            # Retrieval指標評価
-│   │   ├── schemas.py                      # データ構造定義
-│   │   ├── server.py                       # FastAPIサーバ
-│   │   ├── service.py                      # サービスロジック
-│   │   ├── tokenizer_ja.py                 # 日本語トークナイザ
-│   │   ├── utils.py                        # ユーティリティ
-│   │   └── vectorstore.py                  # ベクターストア (FAISS)
-│   └── schemas/                            # スキーマ定義
-│       ├── answer.py
-│       └── evaluation.py
-├── tests/                                  # テストコード
-│   ├── fixtures/
-│   ├── test_bm25.py
-│   ├── test_chunking.py
-│   ├── test_exact_match_boost_integration.py
-│   ├── test_hybrid_retriever.py
-│   ├── test_phase5_grid_search.py
-│   ├── test_retrieval_metrics.py
-│   ├── test_tokenizer.py
-│   └── test_utils.py
-├── README.md                               # プロジェクト概要
-└── requirements.txt                        # 依存ライブラリ
-```
-
-## Known Limitations
-
-現在の品質管理は有効ですが、Goodhart's Law を避けるには「測っている指標が真の品質を完全には代表しない」ことを明示しておく必要があります。以下の制約は、既知のリスクとして管理対象に含めるべきものです。
-
-| リスク | 発生メカニズム | 緩和策 | 残存リスク |
-|:---|:---|:---|:---|
-| 評価セットへの過学習 | 25ケースへの適合最大化 | 8種のクエリタイプ混在 | 定量的カバレッジ保証なし |
-| 評価指標の不完全さ | doc 粒度 hit 判定の楽観バイアス | `parse_source_ref()` の chunk 粒度対応 | chunk 粒度 ground truth 未整備 |
-| 合成コーパスのギャップ | 人工文書が実仕様書の構造を再現しない | 意図的な曖昧語彙挿入 | 実コーパスとの相関未検証 |
-| ベンチマーク陳腐化 | コーパス拡張時に ground truth が古い事実を期待 | Ground Truth 固定 | 自動更新メカニズムなし |
-
-これらのリスクを README に明記すること自体が、指標運用の限界を認識したうえで品質統治を行う設計方針の表明でもあります。
-
-## Quickstart
+## Quick Start
 
 ### セットアップ
 
@@ -360,7 +318,79 @@ python scripts/run_phase5_grid_search.py --topn 10
 - `python scripts/run_phase5_grid_search.py --topn 10`
   2 段階 Grid Search を実行し、best config とレポートを出力する
 
-## Future Work
+## ディレクトリ構成
+
+```text
+spec-rag-qa/
+├── .github/
+│   └── workflows/
+│       ├── phase5-grid-search.yml          # Phase 5: Grid Search用CI
+│       └── ragqa-quality-gate.yml          # 品質ゲート（PRフック）
+├── data/                                   # データディレクトリ
+│   ├── docs/                               # インジェスト元ドキュメント
+│   ├── eval/                               # 評価データ群 (Ground Truth / Baseline)
+│   ├── index/                              # 構築済みインデックス (FAISS / BM25)
+│   └── phase0_expanded/                    # Phase0拡張コーパス
+├── docs/                                   # 設計ドキュメント類
+├── scripts/                                # バッチスクリプト
+│   ├── run_phase0_expanded_baseline.py     # ベースライン作成
+│   ├── run_phase3_boost_verification.py    # BM25 Boost効果検証
+│   ├── run_phase4_retrieval_eval.py        # 検索評価実行
+│   └── run_phase5_grid_search.py           # グリッドサーチ実行
+├── src/
+│   ├── evaluator/                          # カスタム評価用ロジック
+│   │   ├── evaluator.py
+│   │   └── fail_detector.py
+│   ├── ragqa/                              # コアパッケージ
+│   │   ├── ask.py                          # 質問応答（CLI）
+│   │   ├── bm25_store.py                   # BM25 実装
+│   │   ├── chunking.py                     # チャンキング処理
+│   │   ├── config.py                       # 設定ファイル
+│   │   ├── embedder.py                     # 埋め込みモデル
+│   │   ├── evaluate.py                     # 回答評価ロジック
+│   │   ├── hybrid_retriever.py             # 検索ロジック (Vector + Keyword)
+│   │   ├── improvement_catalog.py          # 改善カタログ
+│   │   ├── ingest.py                       # 取り込みロジック
+│   │   ├── llm.py                          # LLM呼び出し
+│   │   ├── prompt.py                       # プロンプト管理
+│   │   ├── retrieval_metrics.py            # Retrieval指標評価
+│   │   ├── schemas.py                      # データ構造定義
+│   │   ├── server.py                       # FastAPIサーバ
+│   │   ├── service.py                      # サービスロジック
+│   │   ├── tokenizer_ja.py                 # 日本語トークナイザ
+│   │   ├── utils.py                        # ユーティリティ
+│   │   └── vectorstore.py                  # ベクターストア (FAISS)
+│   └── schemas/                            # スキーマ定義
+│       ├── answer.py
+│       └── evaluation.py
+├── tests/                                  # テストコード
+│   ├── fixtures/
+│   ├── test_bm25.py
+│   ├── test_chunking.py
+│   ├── test_exact_match_boost_integration.py
+│   ├── test_hybrid_retriever.py
+│   ├── test_phase5_grid_search.py
+│   ├── test_retrieval_metrics.py
+│   ├── test_tokenizer.py
+│   └── test_utils.py
+├── README.md                               # プロジェクト概要
+└── requirements.txt                        # 依存ライブラリ
+```
+
+## 既知の制限
+
+現在の品質管理は有効ですが、Goodhart's Law を避けるには「測っている指標が真の品質を完全には代表しない」ことを明示しておく必要があります。以下の制約は、既知のリスクとして管理対象に含めるべきものです。
+
+| リスク | 発生メカニズム | 緩和策 | 残存リスク |
+|:---|:---|:---|:---|
+| 評価セットへの過学習 | 25ケースへの適合最大化 | 8種のクエリタイプ混在 | 定量的カバレッジ保証なし |
+| 評価指標の不完全さ | doc 粒度 hit 判定の楽観バイアス | `parse_source_ref()` の chunk 粒度対応 | chunk 粒度 ground truth 未整備 |
+| 合成コーパスのギャップ | 人工文書が実仕様書の構造を再現しない | 意図的な曖昧語彙挿入 | 実コーパスとの相関未検証 |
+| ベンチマーク陳腐化 | コーパス拡張時に ground truth が古い事実を期待 | Ground Truth 固定 | 自動更新メカニズムなし |
+
+これらのリスクを README に明記すること自体が、指標運用の限界を認識したうえで品質統治を行う設計方針の表明でもあります。
+
+## 今後の展望
 
 - Chunk 単位 ground truth のアノテーション:
   `parse_source_ref()` はすでに `doc_id#chunk_id` を扱えるため、ground truth 側へ chunk_id を持ち込める
