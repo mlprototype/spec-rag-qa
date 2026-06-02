@@ -33,7 +33,7 @@ RAG の改善は、チャンク設計、BM25 設定、ハイブリッド検索�
 このプロジェクトは、Retrieval を固定条件で評価できる ground truth と baseline を持ち、Recall@K、MRR、FailureRate、Latency を用いて検索品質を継続管理します。  
 そのうえで、SLO を満たす変更だけを CI で通し、SLO 制約の中で Grid Search により改善候補を探索できるようにしています。
 
-### 想定ユースケース
+## 想定ユースケース
 
 #### 仕様書・社内文書QAにおけるRAG検索品質の継続的な管理
 
