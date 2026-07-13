@@ -2,17 +2,17 @@
 
 > 仕様書QA向けRAGにおけるRetrieval品質管理の運用基盤
 
-## ポートフォリオ内での位置づけ
+## 関連プロジェクトと設計上の位置づけ
 
 本リポジトリは、生成AIを業務システムへ安全に導入するための
-「品質保証 × 動的制御 × 運用統治」3層構成のポートフォリオの
-**第1弾「品質保証」** に位置づけられます。
+「品質保証・動的制御・運用統治」からなる3層アーキテクチャのうち、
+**品質保証レイヤー** を担います。
 
-| 位置 | リポジトリ | レイヤー |
-|---|---|---|
-| **第1弾** | **本リポジトリ（Retrieval品質管理システム）** | **品質保証** |
-| 第2弾 | [Agentic RAG with Control Plane](https://github.com/mlprototype/ai-agent-rag) | 動的制御 |
-| 第3弾 | [Policy-Aware Multi-LLM Gateway](https://github.com/mlprototype/policy-aware-llm-gateway) | 運用統治 |
+| プロジェクト | 主な責務 |
+|---|---|
+| **本リポジトリ（Retrieval品質管理システム）** | **品質保証** |
+| [Agentic RAG with Control Plane](https://github.com/mlprototype/ai-agent-rag) | 動的制御 |
+| [Policy-Aware Multi-LLM Gateway](https://github.com/mlprototype/policy-aware-llm-gateway) | 運用統治 |
 
 ## 解決する課題
 
