@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
@@ -25,14 +25,48 @@ class AgentEvalInput(AgentEvalModel):
     question: NonEmptyStr
 
 
+class AssertionSpec(AgentEvalModel):
+    """Deterministic assertion over a safely resolved dot-notation path."""
+
+    path: NonEmptyStr
+    operator: Literal[
+        "equals",
+        "not_equals",
+        "contains",
+        "not_contains",
+        "regex",
+        "exists",
+        "in",
+        "gte",
+        "lte",
+        "greater_than_or_equal",
+        "less_than_or_equal",
+    ]
+    value: Any = None
+
+
+class AnswerFormatExpectation(AgentEvalModel):
+    """Machine-checkable constraints for an Agent answer."""
+
+    json_schema: dict[str, Any] | None = None
+    required_sections: list[NonEmptyStr] = Field(default_factory=list)
+
+
 class AgentEvalExpected(AgentEvalModel):
     """Allowed outcomes and answer expectations for one evaluation case."""
 
     query_types: list[NonEmptyStr] = Field(min_length=1)
     routes: list[NonEmptyStr] = Field(min_length=1)
     tool_calls: list[NonEmptyStr] = Field(default_factory=list)
+    tool_argument_schemas: dict[NonEmptyStr, dict[str, Any]] = Field(
+        default_factory=dict
+    )
+    tool_argument_assertions: dict[NonEmptyStr, list[AssertionSpec]] = Field(
+        default_factory=dict
+    )
     citation_required: bool
     answer_assertions: list[NonEmptyStr] = Field(default_factory=list)
+    answer_format: AnswerFormatExpectation | None = None
 
 
 class AgentEvalBudgets(AgentEvalModel):
@@ -156,8 +190,11 @@ class CheckResult(AgentEvalModel):
     schema_version: NonEmptyStr
     check_id: NonEmptyStr
     passed: bool
+    required: bool = True
+    failure_type: NonEmptyStr | None = None
     score: Annotated[float, Field(allow_inf_nan=False)] | None = None
     message: str | None = None
+    details: dict[str, Any] = Field(default_factory=dict)
 
 
 class CaseEvaluationResult(AgentEvalModel):
@@ -168,3 +205,20 @@ class CaseEvaluationResult(AgentEvalModel):
     run_id: NonEmptyStr
     passed: bool
     checks: list[CheckResult] = Field(default_factory=list)
+
+
+class MetricAggregate(AgentEvalModel):
+    """Numerator, denominator, and rate for one aggregate metric."""
+
+    metric_id: NonEmptyStr
+    numerator: NonNegativeInt
+    denominator: NonNegativeInt
+    value: Confidence | None = None
+
+
+class AgentEvaluationResult(AgentEvalModel):
+    """Case results and deterministic metrics for one evaluation batch."""
+
+    schema_version: NonEmptyStr
+    cases: list[CaseEvaluationResult] = Field(default_factory=list)
+    metrics: dict[NonEmptyStr, MetricAggregate] = Field(default_factory=dict)
