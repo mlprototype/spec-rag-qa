@@ -9,6 +9,7 @@ from ragqa.agent_eval.models import (
     AgentRunTrace,
     CaseEvaluationResult,
     CheckResult,
+    CitationTrace,
     ControlTrace,
     GuardrailTrace,
     SourceTrace,
@@ -19,6 +20,7 @@ from ragqa.agent_eval.models import (
 from ragqa.agent_eval.runner import (
     AgentRunner,
     DuplicateCaseIdError,
+    FixtureTraceMismatchError,
     FixtureTraceNotFoundError,
     load_cases,
 )
@@ -34,10 +36,12 @@ __all__ = [
     "AgentRunner",
     "CaseEvaluationResult",
     "CheckResult",
+    "CitationTrace",
     "ControlTrace",
     "DuplicateCaseIdError",
     "DuplicateFixtureTraceError",
     "FixtureRunner",
+    "FixtureTraceMismatchError",
     "FixtureTraceNotFoundError",
     "GuardrailTrace",
     "SourceTrace",
