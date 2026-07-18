@@ -17,6 +17,7 @@ from ragqa.agent_eval import (
     UsageTrace,
     load_cases,
 )
+from ragqa.agent_eval.metrics.citation import extract_answer_citation_ids
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -55,9 +56,9 @@ def test_smoke_citations_resolve_to_observed_sources() -> None:
     for trace in traces:
         source_ids = {source.source_id for source in trace.sources}
         assert all(citation.source_id in source_ids for citation in trace.citations)
-        assert all(
-            citation.citation_id in trace.output.answer
-            for citation in trace.citations
+        answer_citation_ids = extract_answer_citation_ids(trace.output.answer)
+        assert {citation.citation_id for citation in trace.citations} == (
+            answer_citation_ids
         )
         if cases[trace.case_id].expected.citation_required:
             assert trace.citations

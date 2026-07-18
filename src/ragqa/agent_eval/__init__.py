@@ -40,6 +40,7 @@ from ragqa.agent_eval.runner import (
     DuplicateCaseIdError,
     FixtureTraceMismatchError,
     FixtureTraceNotFoundError,
+    SchemaVersionMismatchError,
     load_cases,
 )
 
@@ -72,6 +73,7 @@ __all__ = [
     "MetricAggregate",
     "REQUIRED_TOOL_NOT_CALLED",
     "ROUTE_MISMATCH",
+    "SchemaVersionMismatchError",
     "SourceTrace",
     "TASK_FAILED",
     "TimingTrace",

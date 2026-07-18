@@ -47,7 +47,7 @@
       ],
       "answer_format": {
         "required_sections": [
-          "パスワード"
+          "回答"
         ]
       }
     },
@@ -83,7 +83,7 @@
       ],
       "answer_format": {
         "required_sections": [
-          "断定"
+          "回答"
         ]
       }
     },
@@ -152,8 +152,8 @@
       ],
       "answer_format": {
         "required_sections": [
-          "HTTP 409",
-          "422"
+          "結論",
+          "補足"
         ]
       }
     },

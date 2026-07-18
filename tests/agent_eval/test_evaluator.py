@@ -1,6 +1,9 @@
+import pytest
+
 from ragqa.agent_eval import (
     AgentEvalCase,
     AgentRunTrace,
+    SchemaVersionMismatchError,
     evaluate_case,
     evaluate_cases,
 )
@@ -55,3 +58,37 @@ def test_missing_tool_is_counted_in_schema_and_semantic_denominators(
         0.0,
     )
     assert result.metrics["task_success_rate"].value == 0.0
+
+
+def test_case_and_trace_schema_versions_must_match(
+    smoke_pair: tuple[AgentEvalCase, AgentRunTrace],
+) -> None:
+    case, original = smoke_pair
+    trace = original.model_copy(deep=True)
+    trace.schema_version = "2.0"
+
+    with pytest.raises(SchemaVersionMismatchError, match=case.id):
+        evaluate_case(case, trace)
+
+
+def test_batch_rejects_mixed_schema_versions(
+    smoke_cases: list[AgentEvalCase], smoke_traces: list[AgentRunTrace]
+) -> None:
+    cases = [case.model_copy(deep=True) for case in smoke_cases[:2]]
+    traces = [trace.model_copy(deep=True) for trace in smoke_traces[:2]]
+    cases[1].schema_version = "2.0"
+    traces[1].schema_version = "2.0"
+
+    with pytest.raises(SchemaVersionMismatchError, match="Mixed case"):
+        evaluate_cases(cases, traces)
+
+
+def test_batch_rejects_mixed_trace_schema_versions(
+    smoke_cases: list[AgentEvalCase], smoke_traces: list[AgentRunTrace]
+) -> None:
+    cases = [case.model_copy(deep=True) for case in smoke_cases[:2]]
+    traces = [trace.model_copy(deep=True) for trace in smoke_traces[:2]]
+    traces[1].schema_version = "2.0"
+
+    with pytest.raises(SchemaVersionMismatchError, match="Mixed trace"):
+        evaluate_cases(cases, traces)

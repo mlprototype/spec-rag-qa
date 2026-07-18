@@ -25,6 +25,7 @@ from ragqa.agent_eval.models import (
 from ragqa.agent_eval.runner import (
     FixtureTraceMismatchError,
     FixtureTraceNotFoundError,
+    SchemaVersionMismatchError,
 )
 
 
@@ -40,6 +41,11 @@ def evaluate_case(
     if trace.input.question != case.input.question:
         raise FixtureTraceMismatchError(
             f"Trace input mismatch for case id: {case.id}"
+        )
+    if trace.schema_version != case.schema_version:
+        raise SchemaVersionMismatchError(
+            "Schema version mismatch for case id "
+            f"{case.id}: case={case.schema_version}, trace={trace.schema_version}"
         )
 
     checks = [
@@ -76,6 +82,17 @@ def evaluate_cases(
             raise ValueError(f"Duplicate trace for case id: {trace.case_id}")
         traces_by_case_id[trace.case_id] = trace
 
+    case_versions = {case.schema_version for case in cases}
+    trace_versions = {trace.schema_version for trace in traces_by_case_id.values()}
+    if len(case_versions) > 1:
+        raise SchemaVersionMismatchError(
+            f"Mixed case schema versions: {sorted(case_versions)}"
+        )
+    if len(trace_versions) > 1:
+        raise SchemaVersionMismatchError(
+            f"Mixed trace schema versions: {sorted(trace_versions)}"
+        )
+
     case_results: list[CaseEvaluationResult] = []
     for case in cases:
         trace = traces_by_case_id.get(case.id)
@@ -85,7 +102,9 @@ def evaluate_cases(
             )
         case_results.append(evaluate_case(case, trace))
 
-    schema_version = cases[0].schema_version if cases else "1.0"
+    schema_version = next(
+        iter(case_versions), next(iter(trace_versions), "1.0")
+    )
     return AgentEvaluationResult(
         schema_version=schema_version,
         cases=case_results,

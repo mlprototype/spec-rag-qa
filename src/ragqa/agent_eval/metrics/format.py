@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import json
+import re
+from typing import Any
 
 from jsonschema import SchemaError
 from jsonschema.validators import validator_for
 
+from ragqa.agent_eval.assertions import resolve_json_path
 from ragqa.agent_eval.failure_types import ANSWER_FORMAT_INVALID
 from ragqa.agent_eval.models import AgentEvalCase, AgentRunTrace, CheckResult
 
@@ -31,12 +34,19 @@ def evaluate_answer_format(
 
     errors: list[str] = []
     answer = trace.output.answer
+    parsed_answer: Any = None
+    answer_is_json = False
 
-    if expectation.json_schema is not None:
+    if expectation.json_schema is not None or expectation.required_sections:
         try:
             parsed_answer = json.loads(answer)
-        except json.JSONDecodeError as exc:
-            errors.append(f"Answer is not valid JSON: {exc.msg}")
+            answer_is_json = True
+        except json.JSONDecodeError:
+            pass
+
+    if expectation.json_schema is not None:
+        if not answer_is_json:
+            errors.append("Answer is not valid JSON")
         else:
             validator_class = validator_for(expectation.json_schema)
             try:
@@ -51,11 +61,18 @@ def evaluate_answer_format(
             )
             errors.extend(error.message for error in validation_errors)
 
-    missing_sections = [
-        section
-        for section in expectation.required_sections
-        if section not in answer
-    ]
+    if answer_is_json:
+        missing_sections = [
+            section
+            for section in expectation.required_sections
+            if not _json_section_exists(parsed_answer, section)
+        ]
+    else:
+        missing_sections = [
+            section
+            for section in expectation.required_sections
+            if not _markdown_heading_exists(answer, section)
+        ]
     if missing_sections:
         errors.append(f"Missing required sections: {', '.join(missing_sections)}")
 
@@ -74,3 +91,18 @@ def evaluate_answer_format(
             "evaluated_count": 1,
         },
     )
+
+
+def _markdown_heading_exists(answer: str, section: str) -> bool:
+    pattern = re.compile(
+        rf"(?m)^#{{1,6}}[ \t]+{re.escape(section)}[ \t]*$"
+    )
+    return pattern.search(answer) is not None
+
+
+def _json_section_exists(document: Any, section: str) -> bool:
+    try:
+        found, _ = resolve_json_path(document, section)
+    except ValueError:
+        return False
+    return found

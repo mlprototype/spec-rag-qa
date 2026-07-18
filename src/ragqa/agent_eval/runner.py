@@ -20,6 +20,10 @@ class FixtureTraceMismatchError(ValueError):
     """Raised when a fixture trace does not correspond to the requested case."""
 
 
+class SchemaVersionMismatchError(ValueError):
+    """Raised when incompatible Agent evaluation schema versions are mixed."""
+
+
 @runtime_checkable
 class AgentRunner(Protocol):
     """Target-independent contract for executing one Agent evaluation case."""
