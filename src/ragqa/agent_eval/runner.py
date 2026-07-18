@@ -16,6 +16,10 @@ class FixtureTraceNotFoundError(LookupError):
     """Raised when a fixture has no trace for a requested case."""
 
 
+class FixtureTraceMismatchError(ValueError):
+    """Raised when a fixture trace does not correspond to the requested case."""
+
+
 @runtime_checkable
 class AgentRunner(Protocol):
     """Target-independent contract for executing one Agent evaluation case."""
@@ -52,4 +56,3 @@ def _ensure_unique_case_ids(
     if duplicates:
         duplicate_list = ", ".join(sorted(duplicates))
         raise DuplicateCaseIdError(f"Duplicate case id(s) in {source}: {duplicate_list}")
-
