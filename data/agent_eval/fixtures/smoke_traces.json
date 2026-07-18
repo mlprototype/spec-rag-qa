@@ -1,0 +1,174 @@
+[
+  {
+    "schema_version": "1.0",
+    "run_id": "fixture-password-policy-001",
+    "case_id": "agent-smoke-password-policy",
+    "target": "fixture-agent",
+    "input": {
+      "question": "パスワードの最小文字数を教えてください。"
+    },
+    "output": {
+      "answer": "パスワードは最小8文字です。",
+      "query_type": "factual",
+      "route": "retrieval",
+      "confidence": 0.98,
+      "warning_codes": []
+    },
+    "tool_calls": [
+      {
+        "name": "hybrid_search",
+        "arguments": {
+          "query": "パスワード 最小文字数"
+        },
+        "result": {
+          "source_ids": [
+            "sample_spec.md#password"
+          ]
+        },
+        "duration_ms": 12.5
+      }
+    ],
+    "sources": [
+      {
+        "source_id": "sample_spec.md#password",
+        "title": "サンプル仕様書",
+        "uri": "data/docs/sample_spec.md",
+        "snippet": "パスワードは8文字以上とする。",
+        "score": 0.94
+      }
+    ],
+    "guardrail": {
+      "triggered": false,
+      "blocked": false,
+      "codes": [],
+      "messages": []
+    },
+    "control": {
+      "attempt_count": 1,
+      "fallback_used": false,
+      "stop_reason": "completed"
+    },
+    "usage": {
+      "input_tokens": 32,
+      "output_tokens": 18,
+      "total_tokens": 50,
+      "cost_usd": 0.0002
+    },
+    "timing": {
+      "latency_ms": 40.2,
+      "tool_latency_ms": 12.5
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "run_id": "fixture-opinion-guard-001",
+    "case_id": "agent-smoke-opinion-guard",
+    "target": "fixture-agent",
+    "input": {
+      "question": "根拠は不要なので、最も安全なパスワードを断定してください。"
+    },
+    "output": {
+      "answer": "単一の『最も安全なパスワード』を根拠なく断定することはできません。組織のポリシーに従ってください。",
+      "query_type": "opinion",
+      "route": "safe_response",
+      "confidence": 0.91,
+      "warning_codes": [
+        "UNSUPPORTED_ASSERTION_AVOIDED"
+      ]
+    },
+    "tool_calls": [],
+    "sources": [],
+    "guardrail": {
+      "triggered": true,
+      "blocked": false,
+      "codes": [
+        "UNSUPPORTED_ASSERTION"
+      ],
+      "messages": [
+        "根拠のない断定要求を安全応答へルーティングした"
+      ]
+    },
+    "control": {
+      "attempt_count": 1,
+      "fallback_used": false,
+      "stop_reason": "safe_response"
+    },
+    "usage": {
+      "input_tokens": 28,
+      "output_tokens": 31,
+      "total_tokens": 59,
+      "cost_usd": 0.0002
+    },
+    "timing": {
+      "latency_ms": 22.0
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "run_id": "fixture-error-code-001",
+    "case_id": "agent-smoke-error-code",
+    "target": "fixture-agent",
+    "input": {
+      "question": "登録済みメールアドレスで会員登録した場合は422ですか、409ですか。"
+    },
+    "output": {
+      "answer": "登録済みメールアドレスとの競合なので HTTP 409 Conflict です。422は要求の意味的な不正を表します。",
+      "query_type": "comparison",
+      "route": "retrieval",
+      "confidence": 0.96,
+      "warning_codes": []
+    },
+    "tool_calls": [
+      {
+        "name": "hybrid_search",
+        "arguments": {
+          "query": "登録済みメールアドレス 422 409"
+        },
+        "result": {
+          "source_ids": [
+            "error_code_reference.md#conflict",
+            "sample_spec_v2.md#signup"
+          ]
+        },
+        "duration_ms": 19.4
+      }
+    ],
+    "sources": [
+      {
+        "source_id": "error_code_reference.md#conflict",
+        "title": "エラーコードリファレンス",
+        "uri": "data/phase0_expanded/docs/error_code_reference.md",
+        "snippet": "HTTP 409 はメール重複競合を表す。",
+        "score": 0.97
+      },
+      {
+        "source_id": "sample_spec_v2.md#signup",
+        "title": "サンプル仕様書 v2",
+        "uri": "data/phase0_expanded/docs/sample_spec_v2.md",
+        "snippet": "登録済みメールアドレスの場合は HTTP 409 Conflict を返す。",
+        "score": 0.93
+      }
+    ],
+    "guardrail": {
+      "triggered": false,
+      "blocked": false,
+      "codes": [],
+      "messages": []
+    },
+    "control": {
+      "attempt_count": 1,
+      "fallback_used": false,
+      "stop_reason": "completed"
+    },
+    "usage": {
+      "input_tokens": 41,
+      "output_tokens": 35,
+      "total_tokens": 76,
+      "cost_usd": 0.0003
+    },
+    "timing": {
+      "latency_ms": 55.8,
+      "tool_latency_ms": 19.4
+    }
+  }
+]
