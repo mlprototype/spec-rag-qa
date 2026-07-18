@@ -17,10 +17,39 @@
       "tool_calls": [
         "hybrid_search"
       ],
+      "tool_argument_schemas": {
+        "hybrid_search": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "tool_argument_assertions": {
+        "hybrid_search": [
+          {
+            "path": "arguments.query",
+            "operator": "contains",
+            "value": "パスワード"
+          }
+        ]
+      },
       "citation_required": true,
       "answer_assertions": [
         "最小8文字であることを説明する"
-      ]
+      ],
+      "answer_format": {
+        "required_sections": [
+          "回答"
+        ]
+      }
     },
     "budgets": {
       "max_latency_ms": 1000.0,
@@ -51,7 +80,12 @@
       "citation_required": false,
       "answer_assertions": [
         "根拠なしの断定を避ける"
-      ]
+      ],
+      "answer_format": {
+        "required_sections": [
+          "回答"
+        ]
+      }
     },
     "budgets": {
       "max_latency_ms": 500.0,
@@ -82,11 +116,46 @@
       "tool_calls": [
         "hybrid_search"
       ],
+      "tool_argument_schemas": {
+        "hybrid_search": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "tool_argument_assertions": {
+        "hybrid_search": [
+          {
+            "path": "arguments.query",
+            "operator": "contains",
+            "value": "409"
+          },
+          {
+            "path": "arguments.query",
+            "operator": "contains",
+            "value": "422"
+          }
+        ]
+      },
       "citation_required": true,
       "answer_assertions": [
         "HTTP 409 Conflictを正しい結果として説明する",
         "HTTP 422との違いを説明する"
-      ]
+      ],
+      "answer_format": {
+        "required_sections": [
+          "結論",
+          "補足"
+        ]
+      }
     },
     "budgets": {
       "max_latency_ms": 1200.0,
