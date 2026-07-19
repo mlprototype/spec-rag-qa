@@ -70,7 +70,7 @@ Runner timeout、終了コード非0、不正JSON、case_id不一致は、それ
 
 ## Report、品質Gate、Baseline
 
-標準実行は `data/agent_eval/reports/latest.json` と `latest.md` を生成します。Reportには全体とcategory／severity別のTask Success、各決定論的指標、Route混同行列、latencyのaverage／p50／p95／max、Failure Typeとowner、`execution_error` を含みます。分母が0の指標はJSONで `null`、Markdownで `N/A` とし、100%には変換しません。
+標準実行はGit管理されない `.artifacts/agent-quality/report.json` と `report.md` を生成します。Git管理する出力例は `data/agent_eval/reports/example.json` と `example.md` で、CI生成物とは分離しています。Reportには全体とcategory／severity別のTask Success、各決定論的指標、Route混同行列、latencyのaverage／p50／p95／max、Failure Typeとowner、`execution_error` を含みます。分母が0の指標はJSONで `null`、Markdownで `N/A` とし、100%には変換しません。
 
 Gate定義は `config/agent_quality_gate.yml`、review済みBaselineは `data/agent_eval/baseline/agent_baseline.json` です。通常実行はBaselineを読み取るだけです。Baselineの置換は次の明示操作に限定され、いずれかの絶対GateまたはRunner実行に問題がある場合は更新しません。
 
@@ -80,7 +80,7 @@ PYTHONPATH=src python scripts/run_agent_evaluation.py \
   --update-baseline
 ```
 
-PR用GitHub ActionsはFixtureで同じGateを実行します。実Agentは手動dispatchの別Jobに分離し、対象 `ai-agent-rag` revisionも明示して実行します。
+PR用GitHub ActionsはFixtureで同じGateを実行します。評価前に `.artifacts/agent-quality/` を削除・再作成し、今回生成したJSON、Markdown、実行ログだけを `if: always()` でartifact化します。実Agentは手動dispatchの別Jobに分離し、対象 `ai-agent-rag` revisionも明示して実行します。
 
 ## 事前検査
 

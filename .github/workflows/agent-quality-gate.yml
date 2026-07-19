@@ -44,15 +44,24 @@ jobs:
           PYTHONPATH: src
         run: python -m pytest tests/agent_eval -q
 
+      - name: Prepare fresh Agent quality artifact directory
+        if: always()
+        run: |
+          rm -rf .artifacts/agent-quality
+          mkdir -p .artifacts/agent-quality
+
       - name: Run offline Fixture quality gate
         if: always()
         env:
           PYTHONPATH: src
-        run: >-
-          python scripts/run_agent_evaluation.py
-          --runner fixture
-          --report-json data/agent_eval/reports/latest.json
-          --report-markdown data/agent_eval/reports/latest.md
+        shell: bash
+        run: |
+          set -o pipefail
+          python scripts/run_agent_evaluation.py \
+            --runner fixture \
+            --report-json .artifacts/agent-quality/report.json \
+            --report-markdown .artifacts/agent-quality/report.md \
+            2>&1 | tee .artifacts/agent-quality/run.log
 
       - name: Upload Agent quality reports
         if: always()
@@ -60,9 +69,11 @@ jobs:
         with:
           name: agent-quality-reports-${{ github.run_attempt }}
           if-no-files-found: warn
+          include-hidden-files: true
           path: |
-            data/agent_eval/reports/latest.json
-            data/agent_eval/reports/latest.md
+            .artifacts/agent-quality/report.json
+            .artifacts/agent-quality/report.md
+            .artifacts/agent-quality/run.log
 
   real-agent-evaluation:
     name: Real ai-agent-rag Evaluation
@@ -94,20 +105,30 @@ jobs:
           python -m pip install -r requirements.txt
           python -m pip install -r ai-agent-rag/requirements.txt
 
+      - name: Prepare fresh real Agent artifact directory
+        if: always()
+        run: |
+          rm -rf .artifacts/agent-quality
+          mkdir -p .artifacts/agent-quality
+
       - name: Run real Agent quality gate
+        if: always()
         env:
           LANGCHAIN_TRACING_V2: "false"
           LANGSMITH_TRACING: "false"
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           PYTHONPATH: src
-        run: >-
-          python scripts/run_agent_evaluation.py
-          --runner subprocess
-          --subprocess-command "python scripts/run_agent_trace.py"
-          --subprocess-cwd ai-agent-rag
-          --timeout-seconds 60
-          --report-json data/agent_eval/reports/real-agent.json
-          --report-markdown data/agent_eval/reports/real-agent.md
+        shell: bash
+        run: |
+          set -o pipefail
+          python scripts/run_agent_evaluation.py \
+            --runner subprocess \
+            --subprocess-command "python scripts/run_agent_trace.py" \
+            --subprocess-cwd ai-agent-rag \
+            --timeout-seconds 60 \
+            --report-json .artifacts/agent-quality/real-agent.json \
+            --report-markdown .artifacts/agent-quality/real-agent.md \
+            2>&1 | tee .artifacts/agent-quality/real-agent.log
 
       - name: Upload real Agent quality reports
         if: always()
@@ -115,6 +136,8 @@ jobs:
         with:
           name: real-agent-quality-reports-${{ github.run_attempt }}
           if-no-files-found: warn
+          include-hidden-files: true
           path: |
-            data/agent_eval/reports/real-agent.json
-            data/agent_eval/reports/real-agent.md
+            .artifacts/agent-quality/real-agent.json
+            .artifacts/agent-quality/real-agent.md
+            .artifacts/agent-quality/real-agent.log

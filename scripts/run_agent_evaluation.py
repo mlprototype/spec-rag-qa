@@ -40,8 +40,8 @@ DEFAULT_CASES = Path("data/agent_eval/cases/phase6_synthetic.json")
 DEFAULT_TRACES = Path("data/agent_eval/fixtures/phase6_synthetic_traces.json")
 DEFAULT_GATE_CONFIG = Path("config/agent_quality_gate.yml")
 DEFAULT_BASELINE = Path("data/agent_eval/baseline/agent_baseline.json")
-DEFAULT_REPORT_JSON = Path("data/agent_eval/reports/latest.json")
-DEFAULT_REPORT_MARKDOWN = Path("data/agent_eval/reports/latest.md")
+DEFAULT_REPORT_JSON = Path(".artifacts/agent-quality/report.json")
+DEFAULT_REPORT_MARKDOWN = Path(".artifacts/agent-quality/report.md")
 FALLBACK_CATEGORIES = {"fallback", "degraded"}
 
 

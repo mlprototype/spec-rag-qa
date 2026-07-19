@@ -396,7 +396,7 @@ Phase 6の決定論的Agent評価は、20件の公開可能な合成ケースを
 PYTHONPATH=src python scripts/run_agent_evaluation.py --runner fixture
 ```
 
-保存Traceを再評価するときは `--runner trace-file`、実 `ai-agent-rag` を実行するときは `--runner subprocess --subprocess-command "python scripts/run_agent_trace.py" --subprocess-cwd ../ai-agent-rag` を指定します。標準reportは `data/agent_eval/reports/latest.json` と `latest.md` です。終了コードはGate合格が0、評価済みTraceの品質Gate不合格が1、事前検査またはRunnerの `execution_error` が2です。
+保存Traceを再評価するときは `--runner trace-file`、実 `ai-agent-rag` を実行するときは `--runner subprocess --subprocess-command "python scripts/run_agent_trace.py" --subprocess-cwd ../ai-agent-rag` を指定します。標準reportはGit管理されない `.artifacts/agent-quality/report.json` と `report.md` です。Git管理する出力例は `data/agent_eval/reports/example.json` と `example.md` に分離しています。終了コードはGate合格が0、評価済みTraceの品質Gate不合格が1、事前検査またはRunnerの `execution_error` が2です。
 
 Gateの閾値は [config/agent_quality_gate.yml](config/agent_quality_gate.yml) に集約しています。CriticalのTask Success／Format、Runner error、必須Tool、Tool schema、Citation Validityは絶対Gateであり、平均点による相殺を許しません。全体Task SuccessとRoute Accuracyはreview済みBaselineからの低下を許容せず、p95 latencyはBaselineの110%までを許容します。対象ケースがなく分母が0の指標は `N/A` のまま保持し、100%とは表示しません。
 
@@ -408,7 +408,7 @@ PYTHONPATH=src python scripts/run_agent_evaluation.py \
   --update-baseline
 ```
 
-[Agent Quality Gate workflow](.github/workflows/agent-quality-gate.yml) のPR JobはFixtureと保存済みBaselineだけを使うため、外部APIキーを必要としません。JSON／Markdown reportは成功・失敗にかかわらずartifactへ保存します。実Agent評価は `workflow_dispatch` の `run_real_agent` を明示的に有効化した場合だけ、`ai_agent_ref` で指定したbranch／tag／commitを別Jobで実行します。
+[Agent Quality Gate workflow](.github/workflows/agent-quality-gate.yml) のPR JobはFixtureと保存済みBaselineだけを使うため、外部APIキーを必要としません。実行前に `.artifacts/agent-quality/` を作り直し、JSON／Markdown reportと実行ログを成功・失敗にかかわらずartifactへ保存します。実Agent評価は `workflow_dispatch` の `run_real_agent` を明示的に有効化した場合だけ、`ai_agent_ref` で指定したbranch／tag／commitを別Jobで実行します。
 
 合成Fixtureは契約回帰を決定論的に検出するためのもので、LLMの揺らぎ、実トラフィック比率、実ネットワークlatency、全Tool、認証・再試行、Citation内容の意味的支持を代表しません。本番判断では匿名化した実質問、実Trace、人手判定、障害注入、セキュリティ評価を追加してください。ケース一覧、Runner契約、事前検査、詳細な限界は [docs/agent_evaluation_dataset.md](docs/agent_evaluation_dataset.md) を参照してください。
 
