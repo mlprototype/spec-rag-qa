@@ -48,6 +48,7 @@ class AssertionSpec(AgentEvalModel):
 class AnswerFormatExpectation(AgentEvalModel):
     """Machine-checkable constraints for an Agent answer."""
 
+    format_type: Literal["json", "natural_language"] | None = None
     json_schema: dict[str, Any] | None = None
     required_sections: list[NonEmptyStr] = Field(default_factory=list)
 
@@ -58,6 +59,7 @@ class AgentEvalExpected(AgentEvalModel):
     query_types: list[NonEmptyStr] = Field(min_length=1)
     routes: list[NonEmptyStr] = Field(min_length=1)
     tool_calls: list[NonEmptyStr] = Field(default_factory=list)
+    forbidden_tool_calls: list[NonEmptyStr] = Field(default_factory=list)
     tool_argument_schemas: dict[NonEmptyStr, dict[str, Any]] = Field(
         default_factory=dict
     )
@@ -146,17 +148,23 @@ class ControlTrace(AgentEvalModel):
     """Observed execution-control facts that are independent of evaluation."""
 
     attempt_count: Annotated[int, Field(ge=1)] = 1
+    retry_count: NonNegativeInt = 0
     fallback_used: bool = False
+    fallback_stages: list[NonEmptyStr] = Field(default_factory=list)
+    timeout_stages: list[NonEmptyStr] = Field(default_factory=list)
+    skipped_stages: list[NonEmptyStr] = Field(default_factory=list)
+    fallback_level: NonEmptyStr | int | None = None
+    remaining_budget_ms_at_generate: NonNegativeFloat | None = None
     stop_reason: NonEmptyStr | None = None
 
 
 class UsageTrace(AgentEvalModel):
     """Observed token and monetary usage for a run."""
 
-    input_tokens: NonNegativeInt = 0
-    output_tokens: NonNegativeInt = 0
-    total_tokens: NonNegativeInt = 0
-    cost_usd: NonNegativeFloat = 0.0
+    input_tokens: NonNegativeInt | None = None
+    output_tokens: NonNegativeInt | None = None
+    total_tokens: NonNegativeInt | None = None
+    cost_usd: NonNegativeFloat | None = None
 
 
 class TimingTrace(AgentEvalModel):
@@ -164,6 +172,7 @@ class TimingTrace(AgentEvalModel):
 
     latency_ms: NonNegativeFloat
     tool_latency_ms: NonNegativeFloat | None = None
+    route_decision_latency_ms: NonNegativeFloat | None = None
 
 
 class AgentRunTrace(AgentEvalModel):

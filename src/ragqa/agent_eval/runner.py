@@ -24,6 +24,42 @@ class SchemaVersionMismatchError(ValueError):
     """Raised when incompatible Agent evaluation schema versions are mixed."""
 
 
+class AgentRunnerError(RuntimeError):
+    """Base class for execution failures outside deterministic evaluation."""
+
+
+class RunnerTimeoutError(AgentRunnerError):
+    """Raised when an Agent runner exceeds its execution timeout."""
+
+
+class RunnerLaunchError(AgentRunnerError):
+    """Raised when an Agent subprocess cannot be started."""
+
+
+class RunnerNonZeroExitError(AgentRunnerError):
+    """Raised when an Agent subprocess exits unsuccessfully."""
+
+    def __init__(self, case_id: str, returncode: int, stderr: str = "") -> None:
+        super().__init__(
+            f"Agent subprocess failed for case id {case_id} with exit code {returncode}"
+        )
+        self.case_id = case_id
+        self.returncode = returncode
+        self.stderr = stderr
+
+
+class RunnerInvalidJSONError(AgentRunnerError):
+    """Raised when runner output is not valid AgentRunTrace JSON."""
+
+
+class RunnerCaseIdMismatchError(AgentRunnerError):
+    """Raised when runner output belongs to a different case."""
+
+
+class TraceFileNotFoundError(AgentRunnerError):
+    """Raised when a requested saved trace cannot be found."""
+
+
 @runtime_checkable
 class AgentRunner(Protocol):
     """Target-independent contract for executing one Agent evaluation case."""

@@ -1,0 +1,1452 @@
+[
+  {
+    "schema_version": "1.0",
+    "run_id": "synthetic-run-01",
+    "case_id": "agent-direct-greeting",
+    "target": "synthetic-fixture-agent",
+    "input": {
+      "question": "こんにちは。利用できる機能を簡潔に教えてください。"
+    },
+    "output": {
+      "answer": "## 回答\nこんにちは。仕様や運用ルールに関する質問へ回答できます。",
+      "query_type": "direct",
+      "route": "direct",
+      "confidence": 0.93,
+      "warning_codes": []
+    },
+    "tool_calls": [],
+    "citations": [],
+    "sources": [],
+    "guardrail": {
+      "triggered": false,
+      "blocked": false,
+      "codes": [],
+      "messages": []
+    },
+    "control": {
+      "attempt_count": 1,
+      "retry_count": 0,
+      "fallback_used": false,
+      "fallback_stages": [],
+      "timeout_stages": [],
+      "skipped_stages": [],
+      "fallback_level": null,
+      "remaining_budget_ms_at_generate": 500,
+      "stop_reason": "completed"
+    },
+    "usage": {
+      "input_tokens": 20,
+      "output_tokens": 12,
+      "total_tokens": 32,
+      "cost_usd": 0.0001
+    },
+    "timing": {
+      "latency_ms": 35,
+      "tool_latency_ms": null,
+      "route_decision_latency_ms": 4
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "run_id": "synthetic-run-02",
+    "case_id": "agent-direct-help",
+    "target": "synthetic-fixture-agent",
+    "input": {
+      "question": "このQAシステムの使い方を一文で説明してください。"
+    },
+    "output": {
+      "answer": "## 回答\n知りたい仕様や条件を具体的な質問として入力してください。",
+      "query_type": "direct",
+      "route": "direct",
+      "confidence": 0.93,
+      "warning_codes": []
+    },
+    "tool_calls": [],
+    "citations": [],
+    "sources": [],
+    "guardrail": {
+      "triggered": false,
+      "blocked": false,
+      "codes": [],
+      "messages": []
+    },
+    "control": {
+      "attempt_count": 1,
+      "retry_count": 0,
+      "fallback_used": false,
+      "fallback_stages": [],
+      "timeout_stages": [],
+      "skipped_stages": [],
+      "fallback_level": null,
+      "remaining_budget_ms_at_generate": 500,
+      "stop_reason": "completed"
+    },
+    "usage": {
+      "input_tokens": 21,
+      "output_tokens": 13,
+      "total_tokens": 34,
+      "cost_usd": 0.00011
+    },
+    "timing": {
+      "latency_ms": 40,
+      "tool_latency_ms": null,
+      "route_decision_latency_ms": 4
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "run_id": "synthetic-run-03",
+    "case_id": "agent-direct-scope",
+    "target": "synthetic-fixture-agent",
+    "input": {
+      "question": "個人情報を入力せずに質問できますか。"
+    },
+    "output": {
+      "answer": "## 回答\nはい。個人情報や機密情報を入力せず、一般化した内容で質問してください。",
+      "query_type": "direct",
+      "route": "direct",
+      "confidence": 0.93,
+      "warning_codes": []
+    },
+    "tool_calls": [],
+    "citations": [],
+    "sources": [],
+    "guardrail": {
+      "triggered": false,
+      "blocked": false,
+      "codes": [],
+      "messages": []
+    },
+    "control": {
+      "attempt_count": 1,
+      "retry_count": 0,
+      "fallback_used": false,
+      "fallback_stages": [],
+      "timeout_stages": [],
+      "skipped_stages": [],
+      "fallback_level": null,
+      "remaining_budget_ms_at_generate": 500,
+      "stop_reason": "completed"
+    },
+    "usage": {
+      "input_tokens": 22,
+      "output_tokens": 14,
+      "total_tokens": 36,
+      "cost_usd": 0.00012
+    },
+    "timing": {
+      "latency_ms": 45,
+      "tool_latency_ms": null,
+      "route_decision_latency_ms": 4
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "run_id": "synthetic-run-04",
+    "case_id": "agent-definition-session-timeout",
+    "target": "synthetic-fixture-agent",
+    "input": {
+      "question": "セッションタイムアウトの定義を教えてください。"
+    },
+    "output": {
+      "answer": "## 回答\nセッションタイムアウトは30分です。[def-session]",
+      "query_type": "definition",
+      "route": "retrieval",
+      "confidence": 0.93,
+      "warning_codes": []
+    },
+    "tool_calls": [
+      {
+        "name": "hybrid_search",
+        "arguments": {
+          "query": "セッション 仕様",
+          "top_k": 3
+        },
+        "result": {
+          "source_ids": [
+            "def-session"
+          ]
+        },
+        "error": null,
+        "duration_ms": 15
+      }
+    ],
+    "citations": [
+      {
+        "citation_id": "def-session",
+        "source_id": "def-session"
+      }
+    ],
+    "sources": [
+      {
+        "source_id": "def-session",
+        "title": "セッション管理仕様",
+        "uri": "synthetic://def-session",
+        "snippet": "タイムアウトは30分とする。",
+        "score": 0.94
+      }
+    ],
+    "guardrail": {
+      "triggered": false,
+      "blocked": false,
+      "codes": [],
+      "messages": []
+    },
+    "control": {
+      "attempt_count": 1,
+      "retry_count": 0,
+      "fallback_used": false,
+      "fallback_stages": [],
+      "timeout_stages": [],
+      "skipped_stages": [],
+      "fallback_level": null,
+      "remaining_budget_ms_at_generate": 500,
+      "stop_reason": "completed"
+    },
+    "usage": {
+      "input_tokens": 23,
+      "output_tokens": 15,
+      "total_tokens": 38,
+      "cost_usd": 0.00013
+    },
+    "timing": {
+      "latency_ms": 180,
+      "tool_latency_ms": 15,
+      "route_decision_latency_ms": 4
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "run_id": "synthetic-run-05",
+    "case_id": "agent-definition-password-policy",
+    "target": "synthetic-fixture-agent",
+    "input": {
+      "question": "パスワード最小文字数の定義は何ですか。"
+    },
+    "output": {
+      "answer": "## 回答\nパスワードは最小8文字です。[def-password]",
+      "query_type": "definition",
+      "route": "retrieval",
+      "confidence": 0.93,
+      "warning_codes": []
+    },
+    "tool_calls": [
+      {
+        "name": "hybrid_search",
+        "arguments": {
+          "query": "パスワード 仕様",
+          "top_k": 3
+        },
+        "result": {
+          "source_ids": [
+            "def-password"
+          ]
+        },
+        "error": null,
+        "duration_ms": 15
+      }
+    ],
+    "citations": [
+      {
+        "citation_id": "def-password",
+        "source_id": "def-password"
+      }
+    ],
+    "sources": [
+      {
+        "source_id": "def-password",
+        "title": "パスワード仕様",
+        "uri": "synthetic://def-password",
+        "snippet": "パスワードは8文字以上とする。",
+        "score": 0.94
+      }
+    ],
+    "guardrail": {
+      "triggered": false,
+      "blocked": false,
+      "codes": [],
+      "messages": []
+    },
+    "control": {
+      "attempt_count": 1,
+      "retry_count": 0,
+      "fallback_used": false,
+      "fallback_stages": [],
+      "timeout_stages": [],
+      "skipped_stages": [],
+      "fallback_level": null,
+      "remaining_budget_ms_at_generate": 500,
+      "stop_reason": "completed"
+    },
+    "usage": {
+      "input_tokens": 24,
+      "output_tokens": 16,
+      "total_tokens": 40,
+      "cost_usd": 0.00014
+    },
+    "timing": {
+      "latency_ms": 190,
+      "tool_latency_ms": 15,
+      "route_decision_latency_ms": 4
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "run_id": "synthetic-run-06",
+    "case_id": "agent-retrieval-error-409",
+    "target": "synthetic-fixture-agent",
+    "input": {
+      "question": "登録済みメールで会員登録した場合のHTTPステータスは何ですか。"
+    },
+    "output": {
+      "answer": "## 回答\n登録済みメールとの重複はHTTP 409 Conflictです。[ret-409]",
+      "query_type": "factual",
+      "route": "retrieval",
+      "confidence": 0.93,
+      "warning_codes": []
+    },
+    "tool_calls": [
+      {
+        "name": "hybrid_search",
+        "arguments": {
+          "query": "登録済みメール 仕様",
+          "top_k": 3
+        },
+        "result": {
+          "source_ids": [
+            "ret-409"
+          ]
+        },
+        "error": null,
+        "duration_ms": 15
+      }
+    ],
+    "citations": [
+      {
+        "citation_id": "ret-409",
+        "source_id": "ret-409"
+      }
+    ],
+    "sources": [
+      {
+        "source_id": "ret-409",
+        "title": "会員登録API仕様",
+        "uri": "synthetic://ret-409",
+        "snippet": "重複メールはHTTP 409を返す。",
+        "score": 0.94
+      }
+    ],
+    "guardrail": {
+      "triggered": false,
+      "blocked": false,
+      "codes": [],
+      "messages": []
+    },
+    "control": {
+      "attempt_count": 1,
+      "retry_count": 0,
+      "fallback_used": false,
+      "fallback_stages": [],
+      "timeout_stages": [],
+      "skipped_stages": [],
+      "fallback_level": null,
+      "remaining_budget_ms_at_generate": 500,
+      "stop_reason": "completed"
+    },
+    "usage": {
+      "input_tokens": 25,
+      "output_tokens": 17,
+      "total_tokens": 42,
+      "cost_usd": 0.00015
+    },
+    "timing": {
+      "latency_ms": 200,
+      "tool_latency_ms": 15,
+      "route_decision_latency_ms": 4
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "run_id": "synthetic-run-07",
+    "case_id": "agent-retrieval-audit-user-id",
+    "target": "synthetic-fixture-agent",
+    "input": {
+      "question": "監査ログにUSER_IDは必須ですか。"
+    },
+    "output": {
+      "answer": "## 回答\n監査ログにはUSER_IDが必須です。[ret-user-id]",
+      "query_type": "factual",
+      "route": "retrieval",
+      "confidence": 0.93,
+      "warning_codes": []
+    },
+    "tool_calls": [
+      {
+        "name": "hybrid_search",
+        "arguments": {
+          "query": "USER_ID 仕様",
+          "top_k": 3
+        },
+        "result": {
+          "source_ids": [
+            "ret-user-id"
+          ]
+        },
+        "error": null,
+        "duration_ms": 15
+      }
+    ],
+    "citations": [
+      {
+        "citation_id": "ret-user-id",
+        "source_id": "ret-user-id"
+      }
+    ],
+    "sources": [
+      {
+        "source_id": "ret-user-id",
+        "title": "監査ログ基準",
+        "uri": "synthetic://ret-user-id",
+        "snippet": "USER_IDを必須記録項目とする。",
+        "score": 0.94
+      }
+    ],
+    "guardrail": {
+      "triggered": false,
+      "blocked": false,
+      "codes": [],
+      "messages": []
+    },
+    "control": {
+      "attempt_count": 1,
+      "retry_count": 0,
+      "fallback_used": false,
+      "fallback_stages": [],
+      "timeout_stages": [],
+      "skipped_stages": [],
+      "fallback_level": null,
+      "remaining_budget_ms_at_generate": 500,
+      "stop_reason": "completed"
+    },
+    "usage": {
+      "input_tokens": 26,
+      "output_tokens": 18,
+      "total_tokens": 44,
+      "cost_usd": 0.00016
+    },
+    "timing": {
+      "latency_ms": 210,
+      "tool_latency_ms": 15,
+      "route_decision_latency_ms": 4
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "run_id": "synthetic-run-08",
+    "case_id": "agent-complex-lockout-exceptions",
+    "target": "synthetic-fixture-agent",
+    "input": {
+      "question": "アカウントロック条件と解除時の例外をまとめてください。"
+    },
+    "output": {
+      "metadata": {"internal_route": "agentic_retrieval"},
+      "answer": "## 結論\n5回失敗でロックし、本人確認後に解除します。[complex-lock]\n## 根拠\n例外時は管理者承認が必要です。[complex-lock-ex]",
+      "query_type": "retrieval_complex",
+      "route": "retrieval",
+      "confidence": 0.93,
+      "warning_codes": []
+    },
+    "tool_calls": [
+      {
+        "name": "hybrid_search",
+        "arguments": {
+          "query": "アカウントロック 仕様",
+          "top_k": 5
+        },
+        "result": {
+          "source_ids": [
+            "complex-lock",
+            "complex-lock-ex"
+          ]
+        },
+        "error": null,
+        "duration_ms": 15
+      }
+    ],
+    "citations": [
+      {
+        "citation_id": "complex-lock",
+        "source_id": "complex-lock"
+      },
+      {
+        "citation_id": "complex-lock-ex",
+        "source_id": "complex-lock-ex"
+      }
+    ],
+    "sources": [
+      {
+        "source_id": "complex-lock",
+        "title": "アカウント管理仕様",
+        "uri": "synthetic://complex-lock",
+        "snippet": "5回失敗でロックする。",
+        "score": 0.94
+      },
+      {
+        "source_id": "complex-lock-ex",
+        "title": "アカウント管理仕様 補足",
+        "uri": "synthetic://complex-lock-ex",
+        "snippet": "補足根拠",
+        "score": 0.9099999999999999
+      }
+    ],
+    "guardrail": {
+      "triggered": false,
+      "blocked": false,
+      "codes": [],
+      "messages": []
+    },
+    "control": {
+      "attempt_count": 1,
+      "retry_count": 0,
+      "fallback_used": false,
+      "fallback_stages": [],
+      "timeout_stages": [],
+      "skipped_stages": [],
+      "fallback_level": null,
+      "remaining_budget_ms_at_generate": 500,
+      "stop_reason": "completed"
+    },
+    "usage": {
+      "input_tokens": 27,
+      "output_tokens": 19,
+      "total_tokens": 46,
+      "cost_usd": 0.00017
+    },
+    "timing": {
+      "latency_ms": 460,
+      "tool_latency_ms": 15,
+      "route_decision_latency_ms": 4
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "run_id": "synthetic-run-09",
+    "case_id": "agent-complex-retention-conflict",
+    "target": "synthetic-fixture-agent",
+    "input": {
+      "question": "監査ログとサポートログの保持期間が競合する場合の優先規則を説明してください。"
+    },
+    "output": {
+      "metadata": {"internal_route": "agentic_retrieval"},
+      "answer": "## 結論\n監査要件を優先します。[complex-retention]\n## 根拠\n監査ログ365日、サポートログ90日です。[complex-retention-2]",
+      "query_type": "retrieval_complex",
+      "route": "retrieval",
+      "confidence": 0.93,
+      "warning_codes": []
+    },
+    "tool_calls": [
+      {
+        "name": "hybrid_search",
+        "arguments": {
+          "query": "保持期間 仕様",
+          "top_k": 5
+        },
+        "result": {
+          "source_ids": [
+            "complex-retention",
+            "complex-retention-2"
+          ]
+        },
+        "error": null,
+        "duration_ms": 15
+      }
+    ],
+    "citations": [
+      {
+        "citation_id": "complex-retention",
+        "source_id": "complex-retention"
+      },
+      {
+        "citation_id": "complex-retention-2",
+        "source_id": "complex-retention-2"
+      }
+    ],
+    "sources": [
+      {
+        "source_id": "complex-retention",
+        "title": "ログ保持基準",
+        "uri": "synthetic://complex-retention",
+        "snippet": "監査ログは365日保持する。",
+        "score": 0.94
+      },
+      {
+        "source_id": "complex-retention-2",
+        "title": "ログ保持基準 補足",
+        "uri": "synthetic://complex-retention-2",
+        "snippet": "補足根拠",
+        "score": 0.9099999999999999
+      }
+    ],
+    "guardrail": {
+      "triggered": false,
+      "blocked": false,
+      "codes": [],
+      "messages": []
+    },
+    "control": {
+      "attempt_count": 1,
+      "retry_count": 0,
+      "fallback_used": false,
+      "fallback_stages": [],
+      "timeout_stages": [],
+      "skipped_stages": [],
+      "fallback_level": null,
+      "remaining_budget_ms_at_generate": 500,
+      "stop_reason": "completed"
+    },
+    "usage": {
+      "input_tokens": 28,
+      "output_tokens": 20,
+      "total_tokens": 48,
+      "cost_usd": 0.00018
+    },
+    "timing": {
+      "latency_ms": 470,
+      "tool_latency_ms": 15,
+      "route_decision_latency_ms": 4
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "run_id": "synthetic-run-10",
+    "case_id": "agent-complex-incident-procedure",
+    "target": "synthetic-fixture-agent",
+    "input": {
+      "question": "認証障害時の検知から復旧確認までの手順を根拠付きで整理してください。"
+    },
+    "output": {
+      "metadata": {"internal_route": "agentic_retrieval"},
+      "answer": "## 結論\n検知、切り分け、復旧、監視確認の順です。[complex-incident]\n## 根拠\n復旧後30分の監視を行います。[complex-incident-2]",
+      "query_type": "retrieval_complex",
+      "route": "retrieval",
+      "confidence": 0.93,
+      "warning_codes": []
+    },
+    "tool_calls": [
+      {
+        "name": "hybrid_search",
+        "arguments": {
+          "query": "認証障害 仕様",
+          "top_k": 5
+        },
+        "result": {
+          "source_ids": [
+            "complex-incident",
+            "complex-incident-2"
+          ]
+        },
+        "error": null,
+        "duration_ms": 15
+      }
+    ],
+    "citations": [
+      {
+        "citation_id": "complex-incident",
+        "source_id": "complex-incident"
+      },
+      {
+        "citation_id": "complex-incident-2",
+        "source_id": "complex-incident-2"
+      }
+    ],
+    "sources": [
+      {
+        "source_id": "complex-incident",
+        "title": "認証障害Runbook",
+        "uri": "synthetic://complex-incident",
+        "snippet": "検知から復旧確認までを定義する。",
+        "score": 0.94
+      },
+      {
+        "source_id": "complex-incident-2",
+        "title": "認証障害Runbook 補足",
+        "uri": "synthetic://complex-incident-2",
+        "snippet": "補足根拠",
+        "score": 0.9099999999999999
+      }
+    ],
+    "guardrail": {
+      "triggered": false,
+      "blocked": false,
+      "codes": [],
+      "messages": []
+    },
+    "control": {
+      "attempt_count": 1,
+      "retry_count": 0,
+      "fallback_used": false,
+      "fallback_stages": [],
+      "timeout_stages": [],
+      "skipped_stages": [],
+      "fallback_level": null,
+      "remaining_budget_ms_at_generate": 500,
+      "stop_reason": "completed"
+    },
+    "usage": {
+      "input_tokens": 29,
+      "output_tokens": 21,
+      "total_tokens": 50,
+      "cost_usd": 0.00019
+    },
+    "timing": {
+      "latency_ms": 480,
+      "tool_latency_ms": 15,
+      "route_decision_latency_ms": 4
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "run_id": "synthetic-run-11",
+    "case_id": "agent-structured-orders-q1",
+    "target": "synthetic-fixture-agent",
+    "input": {
+      "question": "2025年Q1の注文件数は何件ですか？"
+    },
+    "output": {
+      "metadata": {"internal_route": "structured_query_tool"},
+      "answer": "該当するデータは 3 件です。",
+      "query_type": "structured_query",
+      "route": "structured_query",
+      "confidence": 0.93,
+      "warning_codes": []
+    },
+    "tool_calls": [
+      {
+        "name": "structured_query_tool",
+        "arguments": {
+          "operation": "count",
+          "target_metric": "units_sold",
+          "filters": {"period": "2025-Q1"},
+          "target_dataset": "sales"
+        },
+        "result": {
+          "success": true,
+          "operation": "count",
+          "source_name": "SQLite (sales)",
+          "row_count": 1
+        },
+        "error": null,
+        "duration_ms": 15
+      }
+    ],
+    "citations": [],
+    "sources": [
+      {
+        "source_id": "SQLite (sales)",
+        "title": "SQLite (sales)"
+      }
+    ],
+    "guardrail": {
+      "triggered": false,
+      "blocked": false,
+      "codes": [],
+      "messages": []
+    },
+    "control": {
+      "attempt_count": 1,
+      "retry_count": 0,
+      "fallback_used": false,
+      "fallback_stages": [],
+      "timeout_stages": [],
+      "skipped_stages": [],
+      "fallback_level": null,
+      "remaining_budget_ms_at_generate": 500,
+      "stop_reason": "completed"
+    },
+    "usage": {
+      "input_tokens": 30,
+      "output_tokens": 22,
+      "total_tokens": 52,
+      "cost_usd": 0.0002
+    },
+    "timing": {
+      "latency_ms": 260,
+      "tool_latency_ms": 15,
+      "route_decision_latency_ms": 4
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "run_id": "synthetic-run-12",
+    "case_id": "agent-structured-sales-q2",
+    "target": "synthetic-fixture-agent",
+    "input": {
+      "question": "2025年Q2の売上合計を教えてください。"
+    },
+    "output": {
+      "metadata": {"internal_route": "structured_query_tool"},
+      "answer": "合計は 5,750,000 です。",
+      "query_type": "structured_query",
+      "route": "structured_query",
+      "confidence": 0.93,
+      "warning_codes": []
+    },
+    "tool_calls": [
+      {
+        "name": "structured_query_tool",
+        "arguments": {
+          "operation": "sum",
+          "target_metric": "sales",
+          "filters": {"period": "2025-Q2"},
+          "target_dataset": "sales"
+        },
+        "result": {
+          "success": true,
+          "operation": "sum",
+          "source_name": "SQLite (sales)",
+          "row_count": 1
+        },
+        "error": null,
+        "duration_ms": 15
+      }
+    ],
+    "citations": [],
+    "sources": [
+      {
+        "source_id": "SQLite (sales)",
+        "title": "SQLite (sales)"
+      }
+    ],
+    "guardrail": {
+      "triggered": false,
+      "blocked": false,
+      "codes": [],
+      "messages": []
+    },
+    "control": {
+      "attempt_count": 1,
+      "retry_count": 0,
+      "fallback_used": false,
+      "fallback_stages": [],
+      "timeout_stages": [],
+      "skipped_stages": [],
+      "fallback_level": null,
+      "remaining_budget_ms_at_generate": 500,
+      "stop_reason": "completed"
+    },
+    "usage": {
+      "input_tokens": 31,
+      "output_tokens": 23,
+      "total_tokens": 54,
+      "cost_usd": 0.00021
+    },
+    "timing": {
+      "latency_ms": 280,
+      "tool_latency_ms": 15,
+      "route_decision_latency_ms": 4
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "run_id": "synthetic-run-13",
+    "case_id": "agent-structured-inventory-average",
+    "target": "synthetic-fixture-agent",
+    "input": {
+      "question": "在庫の平均を教えてください。"
+    },
+    "output": {
+      "metadata": {"internal_route": "structured_query_tool"},
+      "answer": "平均は 23,332.67 です。",
+      "query_type": "structured_query",
+      "route": "structured_query",
+      "confidence": 0.93,
+      "warning_codes": []
+    },
+    "tool_calls": [
+      {
+        "name": "structured_query_tool",
+        "arguments": {
+          "operation": "avg",
+          "target_metric": "stock",
+          "filters": {},
+          "target_dataset": "inventory"
+        },
+        "result": {
+          "success": true,
+          "operation": "avg",
+          "source_name": "SQLite (inventory)",
+          "row_count": 1
+        },
+        "error": null,
+        "duration_ms": 15
+      }
+    ],
+    "citations": [],
+    "sources": [
+      {
+        "source_id": "SQLite (inventory)",
+        "title": "SQLite (inventory)"
+      }
+    ],
+    "guardrail": {
+      "triggered": false,
+      "blocked": false,
+      "codes": [],
+      "messages": []
+    },
+    "control": {
+      "attempt_count": 1,
+      "retry_count": 0,
+      "fallback_used": false,
+      "fallback_stages": [],
+      "timeout_stages": [],
+      "skipped_stages": [],
+      "fallback_level": null,
+      "remaining_budget_ms_at_generate": 500,
+      "stop_reason": "completed"
+    },
+    "usage": {
+      "input_tokens": 32,
+      "output_tokens": 24,
+      "total_tokens": 56,
+      "cost_usd": 0.00022
+    },
+    "timing": {
+      "latency_ms": 300,
+      "tool_latency_ms": 15,
+      "route_decision_latency_ms": 4
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "run_id": "synthetic-run-14",
+    "case_id": "agent-structured-sales-top-q3",
+    "target": "synthetic-fixture-agent",
+    "input": {
+      "question": "2025年Q3の売上トップ3製品は？"
+    },
+    "output": {
+      "metadata": {"internal_route": "structured_query_tool"},
+      "answer": "トップ3は以下の通りです: AI Platform (3,000,000), Cloud Storage (2,600,000), Data Analytics API (1,200,000)。",
+      "query_type": "structured_query",
+      "route": "structured_query",
+      "confidence": 0.93,
+      "warning_codes": []
+    },
+    "tool_calls": [
+      {
+        "name": "structured_query_tool",
+        "arguments": {
+          "operation": "top_k",
+          "target_metric": "sales",
+          "filters": {"period": "2025-Q3"},
+          "target_dataset": "sales"
+        },
+        "result": {
+          "success": true,
+          "operation": "top_k",
+          "source_name": "SQLite (sales)",
+          "row_count": 3
+        },
+        "error": null,
+        "duration_ms": 15
+      }
+    ],
+    "citations": [],
+    "sources": [
+      {
+        "source_id": "SQLite (sales)",
+        "title": "SQLite (sales)"
+      }
+    ],
+    "guardrail": {
+      "triggered": false,
+      "blocked": false,
+      "codes": [],
+      "messages": []
+    },
+    "control": {
+      "attempt_count": 1,
+      "retry_count": 0,
+      "fallback_used": false,
+      "fallback_stages": [],
+      "timeout_stages": [],
+      "skipped_stages": [],
+      "fallback_level": null,
+      "remaining_budget_ms_at_generate": 500,
+      "stop_reason": "completed"
+    },
+    "usage": {
+      "input_tokens": 33,
+      "output_tokens": 25,
+      "total_tokens": 58,
+      "cost_usd": 0.00023
+    },
+    "timing": {
+      "latency_ms": 320,
+      "tool_latency_ms": 15,
+      "route_decision_latency_ms": 4
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "run_id": "synthetic-run-15",
+    "case_id": "agent-compare-password-policies",
+    "target": "synthetic-fixture-agent",
+    "input": {
+      "question": "現行パスワードポリシーと改訂版パスワードポリシーの違いを教えてください。"
+    },
+    "output": {
+      "metadata": {"internal_route": "compare_fast_path"},
+      "answer": "## 共通点\nどちらも入力検証を行います。[1] [2]\n## 相違点\n現行版は8文字、改訂版は12文字とMFAを要求します。[1] [2]\n## 向いているケース（使い分けの指針）\n移行期間は現行版、新規適用は改訂版を使用します。\n## 注意点\n適用前に互換性を確認してください。",
+      "query_type": "compare",
+      "route": "compare",
+      "confidence": 0.93,
+      "warning_codes": []
+    },
+    "tool_calls": [
+      {
+        "name": "compare_documents",
+        "arguments": {
+          "left": "現行パスワードポリシー",
+          "right": "改訂版パスワードポリシー",
+          "aspects": [
+            "違い"
+          ]
+        },
+        "result": {
+          "left_source": "cmp-1-left",
+          "right_source": "cmp-1-right"
+        },
+        "error": null,
+        "duration_ms": 15
+      }
+    ],
+    "citations": [
+      {
+        "citation_id": "1",
+        "source_id": "cmp-1-left"
+      },
+      {
+        "citation_id": "2",
+        "source_id": "cmp-1-right"
+      }
+    ],
+    "sources": [
+      {
+        "source_id": "cmp-1-left",
+        "title": "password_policy_v1 合成資料",
+        "uri": "synthetic://cmp-1-left",
+        "snippet": "8文字",
+        "score": 0.95
+      },
+      {
+        "source_id": "cmp-1-right",
+        "title": "password_policy_v2 合成資料",
+        "uri": "synthetic://cmp-1-right",
+        "snippet": "12文字とMFA",
+        "score": 0.96
+      }
+    ],
+    "guardrail": {
+      "triggered": false,
+      "blocked": false,
+      "codes": [],
+      "messages": []
+    },
+    "control": {
+      "attempt_count": 1,
+      "retry_count": 0,
+      "fallback_used": false,
+      "fallback_stages": [],
+      "timeout_stages": [],
+      "skipped_stages": [],
+      "fallback_level": null,
+      "remaining_budget_ms_at_generate": 500,
+      "stop_reason": "completed"
+    },
+    "usage": {
+      "input_tokens": 34,
+      "output_tokens": 26,
+      "total_tokens": 60,
+      "cost_usd": 0.00024
+    },
+    "timing": {
+      "latency_ms": 520,
+      "tool_latency_ms": 15,
+      "route_decision_latency_ms": 4
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "run_id": "synthetic-run-16",
+    "case_id": "agent-compare-retention-standards",
+    "target": "synthetic-fixture-agent",
+    "input": {
+      "question": "監査ログ基準とサポートログ基準の違いを教えてください。"
+    },
+    "output": {
+      "metadata": {"internal_route": "compare_fast_path"},
+      "answer": "## 共通点\nどちらもログを一定期間保持します。[1] [2]\n## 相違点\n監査ログは365日、サポートログは90日保持します。[1] [2]\n## 向いているケース（使い分けの指針）\n監査証跡と問い合わせ対応で基準を使い分けます。\n## 注意点\n法令上の追加要件を別途確認してください。",
+      "query_type": "compare",
+      "route": "compare",
+      "confidence": 0.93,
+      "warning_codes": []
+    },
+    "tool_calls": [
+      {
+        "name": "compare_documents",
+        "arguments": {
+          "left": "監査ログ基準",
+          "right": "サポートログ基準",
+          "aspects": [
+            "違い"
+          ]
+        },
+        "result": {
+          "left_source": "cmp-2-left",
+          "right_source": "cmp-2-right"
+        },
+        "error": null,
+        "duration_ms": 15
+      }
+    ],
+    "citations": [
+      {
+        "citation_id": "1",
+        "source_id": "cmp-2-left"
+      },
+      {
+        "citation_id": "2",
+        "source_id": "cmp-2-right"
+      }
+    ],
+    "sources": [
+      {
+        "source_id": "cmp-2-left",
+        "title": "audit_log_standard 合成資料",
+        "uri": "synthetic://cmp-2-left",
+        "snippet": "365日",
+        "score": 0.95
+      },
+      {
+        "source_id": "cmp-2-right",
+        "title": "support_log_standard 合成資料",
+        "uri": "synthetic://cmp-2-right",
+        "snippet": "90日",
+        "score": 0.96
+      }
+    ],
+    "guardrail": {
+      "triggered": false,
+      "blocked": false,
+      "codes": [],
+      "messages": []
+    },
+    "control": {
+      "attempt_count": 1,
+      "retry_count": 0,
+      "fallback_used": false,
+      "fallback_stages": [],
+      "timeout_stages": [],
+      "skipped_stages": [],
+      "fallback_level": null,
+      "remaining_budget_ms_at_generate": 500,
+      "stop_reason": "completed"
+    },
+    "usage": {
+      "input_tokens": 35,
+      "output_tokens": 27,
+      "total_tokens": 62,
+      "cost_usd": 0.00025
+    },
+    "timing": {
+      "latency_ms": 545,
+      "tool_latency_ms": 15,
+      "route_decision_latency_ms": 4
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "run_id": "synthetic-run-17",
+    "case_id": "agent-compare-api-versions",
+    "target": "synthetic-fixture-agent",
+    "input": {
+      "question": "会員登録API v1と会員登録API v2の違いを教えてください。"
+    },
+    "output": {
+      "metadata": {"internal_route": "compare_fast_path"},
+      "answer": "## 共通点\nどちらも会員登録入力を検証します。[1] [2]\n## 相違点\nv1は重複時400、v2は重複時409を返します。[1] [2]\n## 向いているケース（使い分けの指針）\n既存クライアントはv1、新規クライアントはv2を使用します。\n## 注意点\n移行時はエラーハンドリングを更新してください。",
+      "query_type": "compare",
+      "route": "compare",
+      "confidence": 0.93,
+      "warning_codes": []
+    },
+    "tool_calls": [
+      {
+        "name": "compare_documents",
+        "arguments": {
+          "left": "会員登録API v1",
+          "right": "会員登録API v2",
+          "aspects": [
+            "違い"
+          ]
+        },
+        "result": {
+          "left_source": "cmp-3-left",
+          "right_source": "cmp-3-right"
+        },
+        "error": null,
+        "duration_ms": 15
+      }
+    ],
+    "citations": [
+      {
+        "citation_id": "1",
+        "source_id": "cmp-3-left"
+      },
+      {
+        "citation_id": "2",
+        "source_id": "cmp-3-right"
+      }
+    ],
+    "sources": [
+      {
+        "source_id": "cmp-3-left",
+        "title": "signup_api_v1 合成資料",
+        "uri": "synthetic://cmp-3-left",
+        "snippet": "重複時400",
+        "score": 0.95
+      },
+      {
+        "source_id": "cmp-3-right",
+        "title": "signup_api_v2 合成資料",
+        "uri": "synthetic://cmp-3-right",
+        "snippet": "重複時409",
+        "score": 0.96
+      }
+    ],
+    "guardrail": {
+      "triggered": false,
+      "blocked": false,
+      "codes": [],
+      "messages": []
+    },
+    "control": {
+      "attempt_count": 1,
+      "retry_count": 0,
+      "fallback_used": false,
+      "fallback_stages": [],
+      "timeout_stages": [],
+      "skipped_stages": [],
+      "fallback_level": null,
+      "remaining_budget_ms_at_generate": 500,
+      "stop_reason": "completed"
+    },
+    "usage": {
+      "input_tokens": 36,
+      "output_tokens": 28,
+      "total_tokens": 64,
+      "cost_usd": 0.00026
+    },
+    "timing": {
+      "latency_ms": 570,
+      "tool_latency_ms": 15,
+      "route_decision_latency_ms": 4
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "run_id": "synthetic-run-18",
+    "case_id": "agent-insufficient-future-roadmap",
+    "target": "synthetic-fixture-agent",
+    "input": {
+      "question": "2028年に予定している認証機能のロードマップを教えてください。"
+    },
+    "output": {
+      "metadata": {"internal_route": "agentic_retrieval"},
+      "answer": "## 回答\n公開資料からは2028年のロードマップを確認できません。\n## 不足情報\n承認済みロードマップ資料が必要です。",
+      "query_type": "insufficient_evidence",
+      "route": "retrieval",
+      "confidence": 0.93,
+      "warning_codes": [
+        "INSUFFICIENT_EVIDENCE"
+      ]
+    },
+    "tool_calls": [
+      {
+        "name": "hybrid_search",
+        "arguments": {
+          "query": "2028 公開資料",
+          "top_k": 3
+        },
+        "result": {
+          "source_ids": []
+        },
+        "error": null,
+        "duration_ms": 15
+      }
+    ],
+    "citations": [],
+    "sources": [],
+    "guardrail": {
+      "triggered": false,
+      "blocked": false,
+      "codes": [],
+      "messages": []
+    },
+    "control": {
+      "attempt_count": 1,
+      "retry_count": 0,
+      "fallback_used": false,
+      "fallback_stages": [],
+      "timeout_stages": [],
+      "skipped_stages": [],
+      "fallback_level": null,
+      "remaining_budget_ms_at_generate": 500,
+      "stop_reason": "completed"
+    },
+    "usage": {
+      "input_tokens": 37,
+      "output_tokens": 29,
+      "total_tokens": 66,
+      "cost_usd": 0.00027
+    },
+    "timing": {
+      "latency_ms": 170,
+      "tool_latency_ms": 15,
+      "route_decision_latency_ms": 4
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "run_id": "synthetic-run-19",
+    "case_id": "agent-insufficient-unpublished-pricing",
+    "target": "synthetic-fixture-agent",
+    "input": {
+      "question": "未公開の次期料金プランを正確に教えてください。"
+    },
+    "output": {
+      "metadata": {"internal_route": "agentic_retrieval"},
+      "answer": "## 回答\n公開資料に次期料金プランはありません。\n## 不足情報\n正式な料金表の公開が必要です。",
+      "query_type": "insufficient_evidence",
+      "route": "retrieval",
+      "confidence": 0.93,
+      "warning_codes": [
+        "INSUFFICIENT_EVIDENCE"
+      ]
+    },
+    "tool_calls": [
+      {
+        "name": "hybrid_search",
+        "arguments": {
+          "query": "次期料金 公開資料",
+          "top_k": 3
+        },
+        "result": {
+          "source_ids": []
+        },
+        "error": null,
+        "duration_ms": 15
+      }
+    ],
+    "citations": [],
+    "sources": [],
+    "guardrail": {
+      "triggered": false,
+      "blocked": false,
+      "codes": [],
+      "messages": []
+    },
+    "control": {
+      "attempt_count": 1,
+      "retry_count": 0,
+      "fallback_used": false,
+      "fallback_stages": [],
+      "timeout_stages": [],
+      "skipped_stages": [],
+      "fallback_level": null,
+      "remaining_budget_ms_at_generate": 500,
+      "stop_reason": "completed"
+    },
+    "usage": {
+      "input_tokens": 38,
+      "output_tokens": 30,
+      "total_tokens": 68,
+      "cost_usd": 0.00028
+    },
+    "timing": {
+      "latency_ms": 180,
+      "tool_latency_ms": 15,
+      "route_decision_latency_ms": 4
+    }
+  },
+  {
+    "schema_version": "1.0",
+    "run_id": "synthetic-run-20",
+    "case_id": "agent-fallback-search-timeout",
+    "target": "synthetic-fixture-agent",
+    "input": {
+      "question": "検索がタイムアウトした場合でも、分かる範囲と制約を説明してください。"
+    },
+    "output": {
+      "metadata": {"internal_route": "fallback_retrieval", "degraded": true},
+      "answer": "## 回答\n検索結果を取得できなかったため、確定回答はできません。\n## 制約\n検索タイムアウトが発生しています。",
+      "query_type": "fallback",
+      "route": "retrieval",
+      "confidence": 0.93,
+      "warning_codes": [
+        "RETRIEVAL_TIMEOUT",
+        "DEGRADED_RESPONSE"
+      ]
+    },
+    "tool_calls": [
+      {
+        "name": "hybrid_search",
+        "arguments": {
+          "query": "検索 タイムアウト",
+          "top_k": 3
+        },
+        "result": null,
+        "error": "timeout",
+        "duration_ms": 15
+      }
+    ],
+    "citations": [],
+    "sources": [],
+    "guardrail": {
+      "triggered": false,
+      "blocked": false,
+      "codes": [],
+      "messages": []
+    },
+    "control": {
+      "attempt_count": 1,
+      "retry_count": 1,
+      "fallback_used": true,
+      "fallback_stages": [
+        "retrieval_cache"
+      ],
+      "timeout_stages": [
+        "hybrid_search"
+      ],
+      "skipped_stages": [
+        "rerank"
+      ],
+      "fallback_level": "degraded",
+      "remaining_budget_ms_at_generate": 220,
+      "stop_reason": "degraded_response"
+    },
+    "usage": {
+      "input_tokens": 39,
+      "output_tokens": 31,
+      "total_tokens": 70,
+      "cost_usd": 0.00029
+    },
+    "timing": {
+      "latency_ms": 1450,
+      "tool_latency_ms": 15,
+      "route_decision_latency_ms": 4
+    }
+  }
+]
