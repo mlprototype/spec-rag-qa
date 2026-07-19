@@ -51,6 +51,10 @@ def validate_case_contracts(cases: Sequence[AgentEvalCase]) -> None:
 
         answer_format = case.expected.answer_format
         if answer_format is not None and answer_format.json_schema is not None:
+            if answer_format.format_type == "natural_language":
+                raise DatasetValidationError(
+                    f"Case {case.id} combines natural-language format with JSON Schema"
+                )
             schema = answer_format.json_schema
             validator_class = validator_for(schema)
             try:

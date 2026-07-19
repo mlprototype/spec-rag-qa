@@ -449,9 +449,10 @@
       "question": "アカウントロック条件と解除時の例外をまとめてください。"
     },
     "output": {
+      "metadata": {"internal_route": "agentic_retrieval"},
       "answer": "## 結論\n5回失敗でロックし、本人確認後に解除します。[complex-lock]\n## 根拠\n例外時は管理者承認が必要です。[complex-lock-ex]",
       "query_type": "retrieval_complex",
-      "route": "agentic_retrieval",
+      "route": "retrieval",
       "confidence": 0.93,
       "warning_codes": []
     },
@@ -536,9 +537,10 @@
       "question": "監査ログとサポートログの保持期間が競合する場合の優先規則を説明してください。"
     },
     "output": {
+      "metadata": {"internal_route": "agentic_retrieval"},
       "answer": "## 結論\n監査要件を優先します。[complex-retention]\n## 根拠\n監査ログ365日、サポートログ90日です。[complex-retention-2]",
       "query_type": "retrieval_complex",
-      "route": "agentic_retrieval",
+      "route": "retrieval",
       "confidence": 0.93,
       "warning_codes": []
     },
@@ -623,9 +625,10 @@
       "question": "認証障害時の検知から復旧確認までの手順を根拠付きで整理してください。"
     },
     "output": {
+      "metadata": {"internal_route": "agentic_retrieval"},
       "answer": "## 結論\n検知、切り分け、復旧、監視確認の順です。[complex-incident]\n## 根拠\n復旧後30分の監視を行います。[complex-incident-2]",
       "query_type": "retrieval_complex",
-      "route": "agentic_retrieval",
+      "route": "retrieval",
       "confidence": 0.93,
       "warning_codes": []
     },
@@ -704,13 +707,14 @@
   {
     "schema_version": "1.0",
     "run_id": "synthetic-run-11",
-    "case_id": "agent-structured-orders-2025",
+    "case_id": "agent-structured-orders-q1",
     "target": "synthetic-fixture-agent",
     "input": {
-      "question": "2025年の注文件数を合計で教えてください。"
+      "question": "2025年Q1の注文件数は何件ですか？"
     },
     "output": {
-      "answer": "{\"result\":1280,\"citation\":\"[sq-1]\"}",
+      "metadata": {"internal_route": "structured_query_tool"},
+      "answer": "該当するデータは 3 件です。",
       "query_type": "structured_query",
       "route": "structured_query",
       "confidence": 0.93,
@@ -720,30 +724,26 @@
       {
         "name": "structured_query_tool",
         "arguments": {
-          "metric": "order_count",
-          "year": 2025,
-          "group_by": "none"
+          "operation": "count",
+          "target_metric": "units_sold",
+          "filters": {"period": "2025-Q1"},
+          "target_dataset": "sales"
         },
         "result": {
-          "rows": 1280
+          "success": true,
+          "operation": "count",
+          "source_name": "SQLite (sales)",
+          "row_count": 1
         },
         "error": null,
         "duration_ms": 15
       }
     ],
-    "citations": [
-      {
-        "citation_id": "sq-1",
-        "source_id": "sq-1"
-      }
-    ],
+    "citations": [],
     "sources": [
       {
-        "source_id": "sq-1",
-        "title": "合成集計テーブル",
-        "uri": "synthetic://sq-1",
-        "snippet": "2025年の集計結果",
-        "score": 0.99
+        "source_id": "SQLite (sales)",
+        "title": "SQLite (sales)"
       }
     ],
     "guardrail": {
@@ -778,13 +778,14 @@
   {
     "schema_version": "1.0",
     "run_id": "synthetic-run-12",
-    "case_id": "agent-structured-errors-monthly",
+    "case_id": "agent-structured-sales-q2",
     "target": "synthetic-fixture-agent",
     "input": {
-      "question": "2024年の認証エラー件数を月別に集計してください。"
+      "question": "2025年Q2の売上合計を教えてください。"
     },
     "output": {
-      "answer": "{\"result\":[12,9,15],\"citation\":\"[sq-2]\"}",
+      "metadata": {"internal_route": "structured_query_tool"},
+      "answer": "合計は 5,750,000 です。",
       "query_type": "structured_query",
       "route": "structured_query",
       "confidence": 0.93,
@@ -794,34 +795,26 @@
       {
         "name": "structured_query_tool",
         "arguments": {
-          "metric": "auth_error_count",
-          "year": 2024,
-          "group_by": "month"
+          "operation": "sum",
+          "target_metric": "sales",
+          "filters": {"period": "2025-Q2"},
+          "target_dataset": "sales"
         },
         "result": {
-          "rows": [
-            12,
-            9,
-            15
-          ]
+          "success": true,
+          "operation": "sum",
+          "source_name": "SQLite (sales)",
+          "row_count": 1
         },
         "error": null,
         "duration_ms": 15
       }
     ],
-    "citations": [
-      {
-        "citation_id": "sq-2",
-        "source_id": "sq-2"
-      }
-    ],
+    "citations": [],
     "sources": [
       {
-        "source_id": "sq-2",
-        "title": "合成集計テーブル",
-        "uri": "synthetic://sq-2",
-        "snippet": "2024年の集計結果",
-        "score": 0.99
+        "source_id": "SQLite (sales)",
+        "title": "SQLite (sales)"
       }
     ],
     "guardrail": {
@@ -856,13 +849,14 @@
   {
     "schema_version": "1.0",
     "run_id": "synthetic-run-13",
-    "case_id": "agent-structured-active-users-department",
+    "case_id": "agent-structured-inventory-average",
     "target": "synthetic-fixture-agent",
     "input": {
-      "question": "2026年のアクティブユーザー数を部署別に出してください。"
+      "question": "在庫の平均を教えてください。"
     },
     "output": {
-      "answer": "{\"result\":{\"sales\":84,\"support\":41},\"citation\":\"[sq-3]\"}",
+      "metadata": {"internal_route": "structured_query_tool"},
+      "answer": "平均は 23,332.67 です。",
       "query_type": "structured_query",
       "route": "structured_query",
       "confidence": 0.93,
@@ -872,33 +866,26 @@
       {
         "name": "structured_query_tool",
         "arguments": {
-          "metric": "active_user_count",
-          "year": 2026,
-          "group_by": "department"
+          "operation": "avg",
+          "target_metric": "stock",
+          "filters": {},
+          "target_dataset": "inventory"
         },
         "result": {
-          "rows": {
-            "sales": 84,
-            "support": 41
-          }
+          "success": true,
+          "operation": "avg",
+          "source_name": "SQLite (inventory)",
+          "row_count": 1
         },
         "error": null,
         "duration_ms": 15
       }
     ],
-    "citations": [
-      {
-        "citation_id": "sq-3",
-        "source_id": "sq-3"
-      }
-    ],
+    "citations": [],
     "sources": [
       {
-        "source_id": "sq-3",
-        "title": "合成集計テーブル",
-        "uri": "synthetic://sq-3",
-        "snippet": "2026年の集計結果",
-        "score": 0.99
+        "source_id": "SQLite (inventory)",
+        "title": "SQLite (inventory)"
       }
     ],
     "guardrail": {
@@ -933,13 +920,14 @@
   {
     "schema_version": "1.0",
     "run_id": "synthetic-run-14",
-    "case_id": "agent-structured-revenue-quarter",
+    "case_id": "agent-structured-sales-top-q3",
     "target": "synthetic-fixture-agent",
     "input": {
-      "question": "2025年の売上を四半期別に集計してください。"
+      "question": "2025年Q3の売上トップ3製品は？"
     },
     "output": {
-      "answer": "{\"result\":[1200000,1350000,1410000,1520000],\"citation\":\"[sq-4]\"}",
+      "metadata": {"internal_route": "structured_query_tool"},
+      "answer": "トップ3は以下の通りです: AI Platform (3,000,000), Cloud Storage (2,600,000), Data Analytics API (1,200,000)。",
       "query_type": "structured_query",
       "route": "structured_query",
       "confidence": 0.93,
@@ -949,35 +937,26 @@
       {
         "name": "structured_query_tool",
         "arguments": {
-          "metric": "revenue",
-          "year": 2025,
-          "group_by": "quarter"
+          "operation": "top_k",
+          "target_metric": "sales",
+          "filters": {"period": "2025-Q3"},
+          "target_dataset": "sales"
         },
         "result": {
-          "rows": [
-            1200000,
-            1350000,
-            1410000,
-            1520000
-          ]
+          "success": true,
+          "operation": "top_k",
+          "source_name": "SQLite (sales)",
+          "row_count": 3
         },
         "error": null,
         "duration_ms": 15
       }
     ],
-    "citations": [
-      {
-        "citation_id": "sq-4",
-        "source_id": "sq-4"
-      }
-    ],
+    "citations": [],
     "sources": [
       {
-        "source_id": "sq-4",
-        "title": "合成集計テーブル",
-        "uri": "synthetic://sq-4",
-        "snippet": "2025年の集計結果",
-        "score": 0.99
+        "source_id": "SQLite (sales)",
+        "title": "SQLite (sales)"
       }
     ],
     "guardrail": {
@@ -1015,10 +994,11 @@
     "case_id": "agent-compare-password-policies",
     "target": "synthetic-fixture-agent",
     "input": {
-      "question": "現行と改訂版のパスワードポリシーを比較してください。"
+      "question": "現行パスワードポリシーと改訂版パスワードポリシーの違いを教えてください。"
     },
     "output": {
-      "answer": "## 概要\n2つの仕様を比較します。[cmp-1-left] [cmp-1-right]\n## 共通点\n入力検証を行います。\n## 相違点\n左は8文字、右は12文字とMFAです。\n## 推奨\n新しい仕様を優先してください。",
+      "metadata": {"internal_route": "compare_fast_path"},
+      "answer": "## 共通点\nどちらも入力検証を行います。[1] [2]\n## 相違点\n現行版は8文字、改訂版は12文字とMFAを要求します。[1] [2]\n## 向いているケース（使い分けの指針）\n移行期間は現行版、新規適用は改訂版を使用します。\n## 注意点\n適用前に互換性を確認してください。",
       "query_type": "compare",
       "route": "compare",
       "confidence": 0.93,
@@ -1028,11 +1008,10 @@
       {
         "name": "compare_documents",
         "arguments": {
-          "left": "password_policy_v1",
-          "right": "password_policy_v2",
+          "left": "現行パスワードポリシー",
+          "right": "改訂版パスワードポリシー",
           "aspects": [
-            "minimum_length",
-            "mfa"
+            "違い"
           ]
         },
         "result": {
@@ -1045,11 +1024,11 @@
     ],
     "citations": [
       {
-        "citation_id": "cmp-1-left",
+        "citation_id": "1",
         "source_id": "cmp-1-left"
       },
       {
-        "citation_id": "cmp-1-right",
+        "citation_id": "2",
         "source_id": "cmp-1-right"
       }
     ],
@@ -1104,10 +1083,11 @@
     "case_id": "agent-compare-retention-standards",
     "target": "synthetic-fixture-agent",
     "input": {
-      "question": "監査ログ基準とサポートログ基準の保持期間を比較してください。"
+      "question": "監査ログ基準とサポートログ基準の違いを教えてください。"
     },
     "output": {
-      "answer": "## 概要\n2つの仕様を比較します。[cmp-2-left] [cmp-2-right]\n## 共通点\n入力検証を行います。\n## 相違点\n左は365日、右は90日です。\n## 推奨\n新しい仕様を優先してください。",
+      "metadata": {"internal_route": "compare_fast_path"},
+      "answer": "## 共通点\nどちらもログを一定期間保持します。[1] [2]\n## 相違点\n監査ログは365日、サポートログは90日保持します。[1] [2]\n## 向いているケース（使い分けの指針）\n監査証跡と問い合わせ対応で基準を使い分けます。\n## 注意点\n法令上の追加要件を別途確認してください。",
       "query_type": "compare",
       "route": "compare",
       "confidence": 0.93,
@@ -1117,11 +1097,10 @@
       {
         "name": "compare_documents",
         "arguments": {
-          "left": "audit_log_standard",
-          "right": "support_log_standard",
+          "left": "監査ログ基準",
+          "right": "サポートログ基準",
           "aspects": [
-            "retention_days",
-            "priority"
+            "違い"
           ]
         },
         "result": {
@@ -1134,11 +1113,11 @@
     ],
     "citations": [
       {
-        "citation_id": "cmp-2-left",
+        "citation_id": "1",
         "source_id": "cmp-2-left"
       },
       {
-        "citation_id": "cmp-2-right",
+        "citation_id": "2",
         "source_id": "cmp-2-right"
       }
     ],
@@ -1193,10 +1172,11 @@
     "case_id": "agent-compare-api-versions",
     "target": "synthetic-fixture-agent",
     "input": {
-      "question": "会員登録API v1とv2のエラー仕様を比較してください。"
+      "question": "会員登録API v1と会員登録API v2の違いを教えてください。"
     },
     "output": {
-      "answer": "## 概要\n2つの仕様を比較します。[cmp-3-left] [cmp-3-right]\n## 共通点\n入力検証を行います。\n## 相違点\n左は重複時400、右は重複時409です。\n## 推奨\n新しい仕様を優先してください。",
+      "metadata": {"internal_route": "compare_fast_path"},
+      "answer": "## 共通点\nどちらも会員登録入力を検証します。[1] [2]\n## 相違点\nv1は重複時400、v2は重複時409を返します。[1] [2]\n## 向いているケース（使い分けの指針）\n既存クライアントはv1、新規クライアントはv2を使用します。\n## 注意点\n移行時はエラーハンドリングを更新してください。",
       "query_type": "compare",
       "route": "compare",
       "confidence": 0.93,
@@ -1206,11 +1186,10 @@
       {
         "name": "compare_documents",
         "arguments": {
-          "left": "signup_api_v1",
-          "right": "signup_api_v2",
+          "left": "会員登録API v1",
+          "right": "会員登録API v2",
           "aspects": [
-            "duplicate_email",
-            "validation"
+            "違い"
           ]
         },
         "result": {
@@ -1223,11 +1202,11 @@
     ],
     "citations": [
       {
-        "citation_id": "cmp-3-left",
+        "citation_id": "1",
         "source_id": "cmp-3-left"
       },
       {
-        "citation_id": "cmp-3-right",
+        "citation_id": "2",
         "source_id": "cmp-3-right"
       }
     ],
@@ -1285,9 +1264,10 @@
       "question": "2028年に予定している認証機能のロードマップを教えてください。"
     },
     "output": {
+      "metadata": {"internal_route": "agentic_retrieval"},
       "answer": "## 回答\n公開資料からは2028年のロードマップを確認できません。\n## 不足情報\n承認済みロードマップ資料が必要です。",
       "query_type": "insufficient_evidence",
-      "route": "insufficient_evidence",
+      "route": "retrieval",
       "confidence": 0.93,
       "warning_codes": [
         "INSUFFICIENT_EVIDENCE"
@@ -1347,9 +1327,10 @@
       "question": "未公開の次期料金プランを正確に教えてください。"
     },
     "output": {
+      "metadata": {"internal_route": "agentic_retrieval"},
       "answer": "## 回答\n公開資料に次期料金プランはありません。\n## 不足情報\n正式な料金表の公開が必要です。",
       "query_type": "insufficient_evidence",
-      "route": "insufficient_evidence",
+      "route": "retrieval",
       "confidence": 0.93,
       "warning_codes": [
         "INSUFFICIENT_EVIDENCE"
@@ -1409,9 +1390,10 @@
       "question": "検索がタイムアウトした場合でも、分かる範囲と制約を説明してください。"
     },
     "output": {
+      "metadata": {"internal_route": "fallback_retrieval", "degraded": true},
       "answer": "## 回答\n検索結果を取得できなかったため、確定回答はできません。\n## 制約\n検索タイムアウトが発生しています。",
       "query_type": "fallback",
-      "route": "degraded",
+      "route": "retrieval",
       "confidence": 0.93,
       "warning_codes": [
         "RETRIEVAL_TIMEOUT",
@@ -1468,4 +1450,3 @@
     }
   }
 ]
-

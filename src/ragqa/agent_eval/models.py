@@ -48,6 +48,7 @@ class AssertionSpec(AgentEvalModel):
 class AnswerFormatExpectation(AgentEvalModel):
     """Machine-checkable constraints for an Agent answer."""
 
+    format_type: Literal["json", "natural_language"] | None = None
     json_schema: dict[str, Any] | None = None
     required_sections: list[NonEmptyStr] = Field(default_factory=list)
 

@@ -460,7 +460,6 @@
         "retrieval_complex"
       ],
       "routes": [
-        "agentic_retrieval",
         "retrieval"
       ],
       "tool_calls": [
@@ -541,7 +540,6 @@
         "retrieval_complex"
       ],
       "routes": [
-        "agentic_retrieval",
         "retrieval"
       ],
       "tool_calls": [
@@ -622,7 +620,6 @@
         "retrieval_complex"
       ],
       "routes": [
-        "agentic_retrieval",
         "retrieval"
       ],
       "tool_calls": [
@@ -692,443 +689,171 @@
   },
   {
     "schema_version": "1.0",
-    "id": "agent-structured-orders-2025",
+    "id": "agent-structured-orders-q1",
     "category": "structured_query",
     "severity": "medium",
     "input": {
-      "question": "2025年の注文件数を合計で教えてください。"
+      "question": "2025年Q1の注文件数は何件ですか？"
     },
     "expected": {
-      "query_types": [
-        "structured_query"
-      ],
-      "routes": [
-        "structured_query"
-      ],
-      "tool_calls": [
-        "structured_query_tool"
-      ],
-      "forbidden_tool_calls": [
-        "hybrid_search",
-        "compare_documents"
-      ],
+      "query_types": ["structured_query"],
+      "routes": ["structured_query"],
+      "tool_calls": ["structured_query_tool"],
+      "forbidden_tool_calls": ["hybrid_search", "compare_documents"],
       "tool_argument_schemas": {
         "structured_query_tool": {
           "type": "object",
           "properties": {
-            "metric": {
-              "type": "string",
-              "minLength": 1
-            },
-            "year": {
-              "type": "integer",
-              "minimum": 2020,
-              "maximum": 2030
-            },
-            "group_by": {
-              "type": "string",
-              "enum": [
-                "none",
-                "month",
-                "department",
-                "quarter"
-              ]
-            }
+            "operation": {"type": "string", "enum": ["count", "sum", "avg", "top_k", "max", "min", "list"]},
+            "target_metric": {"type": "string", "minLength": 1},
+            "filters": {"type": "object"},
+            "target_dataset": {"type": "string", "enum": ["sales", "inventory"]}
           },
-          "required": [
-            "metric",
-            "year",
-            "group_by"
-          ],
+          "required": ["operation", "target_metric", "filters", "target_dataset"],
           "additionalProperties": false
         }
       },
       "tool_argument_assertions": {
         "structured_query_tool": [
-          {
-            "path": "arguments.metric",
-            "operator": "equals",
-            "value": "order_count"
-          },
-          {
-            "path": "arguments.year",
-            "operator": "equals",
-            "value": 2025
-          },
-          {
-            "path": "arguments.group_by",
-            "operator": "equals",
-            "value": "none"
-          }
+          {"path": "arguments.operation", "operator": "equals", "value": "count"},
+          {"path": "arguments.target_metric", "operator": "equals", "value": "units_sold"},
+          {"path": "arguments.filters.period", "operator": "equals", "value": "2025-Q1"},
+          {"path": "arguments.target_dataset", "operator": "equals", "value": "sales"}
         ]
       },
-      "citation_required": true,
-      "answer_assertions": [
-        "指定された年と集計軸で結果を返す"
-      ],
-      "answer_format": {
-        "json_schema": {
-          "type": "object",
-          "properties": {
-            "result": {},
-            "citation": {
-              "type": "string",
-              "pattern": "^\\[[A-Za-z0-9_.:-]+\\]$"
-            }
-          },
-          "required": [
-            "result",
-            "citation"
-          ],
-          "additionalProperties": false
-        },
-        "required_sections": [
-          "result",
-          "citation"
-        ]
-      }
+      "citation_required": false,
+      "answer_assertions": ["件数を自然言語で返す"],
+      "answer_format": {"format_type": "natural_language"}
     },
-    "budgets": {
-      "max_latency_ms": 1200,
-      "max_cost_usd": 0.02
-    },
+    "budgets": {"max_latency_ms": 1200, "max_cost_usd": 0.02},
     "repeat": 1,
-    "tags": [
-      "synthetic",
-      "public",
-      "structured_query",
-      "json_format"
-    ]
+    "tags": ["synthetic", "public", "structured_query", "natural_language"]
   },
   {
     "schema_version": "1.0",
-    "id": "agent-structured-errors-monthly",
+    "id": "agent-structured-sales-q2",
     "category": "structured_query",
     "severity": "medium",
     "input": {
-      "question": "2024年の認証エラー件数を月別に集計してください。"
+      "question": "2025年Q2の売上合計を教えてください。"
     },
     "expected": {
-      "query_types": [
-        "structured_query"
-      ],
-      "routes": [
-        "structured_query"
-      ],
-      "tool_calls": [
-        "structured_query_tool"
-      ],
-      "forbidden_tool_calls": [
-        "hybrid_search",
-        "compare_documents"
-      ],
+      "query_types": ["structured_query"],
+      "routes": ["structured_query"],
+      "tool_calls": ["structured_query_tool"],
+      "forbidden_tool_calls": ["hybrid_search", "compare_documents"],
       "tool_argument_schemas": {
         "structured_query_tool": {
           "type": "object",
           "properties": {
-            "metric": {
-              "type": "string",
-              "minLength": 1
-            },
-            "year": {
-              "type": "integer",
-              "minimum": 2020,
-              "maximum": 2030
-            },
-            "group_by": {
-              "type": "string",
-              "enum": [
-                "none",
-                "month",
-                "department",
-                "quarter"
-              ]
-            }
+            "operation": {"type": "string", "enum": ["count", "sum", "avg", "top_k", "max", "min", "list"]},
+            "target_metric": {"type": "string", "minLength": 1},
+            "filters": {"type": "object"},
+            "target_dataset": {"type": "string", "enum": ["sales", "inventory"]}
           },
-          "required": [
-            "metric",
-            "year",
-            "group_by"
-          ],
+          "required": ["operation", "target_metric", "filters", "target_dataset"],
           "additionalProperties": false
         }
       },
       "tool_argument_assertions": {
         "structured_query_tool": [
-          {
-            "path": "arguments.metric",
-            "operator": "equals",
-            "value": "auth_error_count"
-          },
-          {
-            "path": "arguments.year",
-            "operator": "equals",
-            "value": 2024
-          },
-          {
-            "path": "arguments.group_by",
-            "operator": "equals",
-            "value": "month"
-          }
+          {"path": "arguments.operation", "operator": "equals", "value": "sum"},
+          {"path": "arguments.target_metric", "operator": "equals", "value": "sales"},
+          {"path": "arguments.filters.period", "operator": "equals", "value": "2025-Q2"},
+          {"path": "arguments.target_dataset", "operator": "equals", "value": "sales"}
         ]
       },
-      "citation_required": true,
-      "answer_assertions": [
-        "指定された年と集計軸で結果を返す"
-      ],
-      "answer_format": {
-        "json_schema": {
-          "type": "object",
-          "properties": {
-            "result": {},
-            "citation": {
-              "type": "string",
-              "pattern": "^\\[[A-Za-z0-9_.:-]+\\]$"
-            }
-          },
-          "required": [
-            "result",
-            "citation"
-          ],
-          "additionalProperties": false
-        },
-        "required_sections": [
-          "result",
-          "citation"
-        ]
-      }
+      "citation_required": false,
+      "answer_assertions": ["売上合計を自然言語で返す"],
+      "answer_format": {"format_type": "natural_language"}
     },
-    "budgets": {
-      "max_latency_ms": 1200,
-      "max_cost_usd": 0.02
-    },
+    "budgets": {"max_latency_ms": 1200, "max_cost_usd": 0.02},
     "repeat": 1,
-    "tags": [
-      "synthetic",
-      "public",
-      "structured_query",
-      "json_format"
-    ]
+    "tags": ["synthetic", "public", "structured_query", "natural_language"]
   },
   {
     "schema_version": "1.0",
-    "id": "agent-structured-active-users-department",
+    "id": "agent-structured-inventory-average",
     "category": "structured_query",
     "severity": "medium",
     "input": {
-      "question": "2026年のアクティブユーザー数を部署別に出してください。"
+      "question": "在庫の平均を教えてください。"
     },
     "expected": {
-      "query_types": [
-        "structured_query"
-      ],
-      "routes": [
-        "structured_query"
-      ],
-      "tool_calls": [
-        "structured_query_tool"
-      ],
-      "forbidden_tool_calls": [
-        "hybrid_search",
-        "compare_documents"
-      ],
+      "query_types": ["structured_query"],
+      "routes": ["structured_query"],
+      "tool_calls": ["structured_query_tool"],
+      "forbidden_tool_calls": ["hybrid_search", "compare_documents"],
       "tool_argument_schemas": {
         "structured_query_tool": {
           "type": "object",
           "properties": {
-            "metric": {
-              "type": "string",
-              "minLength": 1
-            },
-            "year": {
-              "type": "integer",
-              "minimum": 2020,
-              "maximum": 2030
-            },
-            "group_by": {
-              "type": "string",
-              "enum": [
-                "none",
-                "month",
-                "department",
-                "quarter"
-              ]
-            }
+            "operation": {"type": "string", "enum": ["count", "sum", "avg", "top_k", "max", "min", "list"]},
+            "target_metric": {"type": "string", "minLength": 1},
+            "filters": {"type": "object"},
+            "target_dataset": {"type": "string", "enum": ["sales", "inventory"]}
           },
-          "required": [
-            "metric",
-            "year",
-            "group_by"
-          ],
+          "required": ["operation", "target_metric", "filters", "target_dataset"],
           "additionalProperties": false
         }
       },
       "tool_argument_assertions": {
         "structured_query_tool": [
-          {
-            "path": "arguments.metric",
-            "operator": "equals",
-            "value": "active_user_count"
-          },
-          {
-            "path": "arguments.year",
-            "operator": "equals",
-            "value": 2026
-          },
-          {
-            "path": "arguments.group_by",
-            "operator": "equals",
-            "value": "department"
-          }
+          {"path": "arguments.operation", "operator": "equals", "value": "avg"},
+          {"path": "arguments.target_metric", "operator": "equals", "value": "stock"},
+          {"path": "arguments.filters", "operator": "equals", "value": {}},
+          {"path": "arguments.target_dataset", "operator": "equals", "value": "inventory"}
         ]
       },
-      "citation_required": true,
-      "answer_assertions": [
-        "指定された年と集計軸で結果を返す"
-      ],
-      "answer_format": {
-        "json_schema": {
-          "type": "object",
-          "properties": {
-            "result": {},
-            "citation": {
-              "type": "string",
-              "pattern": "^\\[[A-Za-z0-9_.:-]+\\]$"
-            }
-          },
-          "required": [
-            "result",
-            "citation"
-          ],
-          "additionalProperties": false
-        },
-        "required_sections": [
-          "result",
-          "citation"
-        ]
-      }
+      "citation_required": false,
+      "answer_assertions": ["平均在庫を自然言語で返す"],
+      "answer_format": {"format_type": "natural_language"}
     },
-    "budgets": {
-      "max_latency_ms": 1200,
-      "max_cost_usd": 0.02
-    },
+    "budgets": {"max_latency_ms": 1200, "max_cost_usd": 0.02},
     "repeat": 1,
-    "tags": [
-      "synthetic",
-      "public",
-      "structured_query",
-      "json_format"
-    ]
+    "tags": ["synthetic", "public", "structured_query", "natural_language"]
   },
   {
     "schema_version": "1.0",
-    "id": "agent-structured-revenue-quarter",
+    "id": "agent-structured-sales-top-q3",
     "category": "structured_query",
     "severity": "high",
     "input": {
-      "question": "2025年の売上を四半期別に集計してください。"
+      "question": "2025年Q3の売上トップ3製品は？"
     },
     "expected": {
-      "query_types": [
-        "structured_query"
-      ],
-      "routes": [
-        "structured_query"
-      ],
-      "tool_calls": [
-        "structured_query_tool"
-      ],
-      "forbidden_tool_calls": [
-        "hybrid_search",
-        "compare_documents"
-      ],
+      "query_types": ["structured_query"],
+      "routes": ["structured_query"],
+      "tool_calls": ["structured_query_tool"],
+      "forbidden_tool_calls": ["hybrid_search", "compare_documents"],
       "tool_argument_schemas": {
         "structured_query_tool": {
           "type": "object",
           "properties": {
-            "metric": {
-              "type": "string",
-              "minLength": 1
-            },
-            "year": {
-              "type": "integer",
-              "minimum": 2020,
-              "maximum": 2030
-            },
-            "group_by": {
-              "type": "string",
-              "enum": [
-                "none",
-                "month",
-                "department",
-                "quarter"
-              ]
-            }
+            "operation": {"type": "string", "enum": ["count", "sum", "avg", "top_k", "max", "min", "list"]},
+            "target_metric": {"type": "string", "minLength": 1},
+            "filters": {"type": "object"},
+            "target_dataset": {"type": "string", "enum": ["sales", "inventory"]}
           },
-          "required": [
-            "metric",
-            "year",
-            "group_by"
-          ],
+          "required": ["operation", "target_metric", "filters", "target_dataset"],
           "additionalProperties": false
         }
       },
       "tool_argument_assertions": {
         "structured_query_tool": [
-          {
-            "path": "arguments.metric",
-            "operator": "equals",
-            "value": "revenue"
-          },
-          {
-            "path": "arguments.year",
-            "operator": "equals",
-            "value": 2025
-          },
-          {
-            "path": "arguments.group_by",
-            "operator": "equals",
-            "value": "quarter"
-          }
+          {"path": "arguments.operation", "operator": "equals", "value": "top_k"},
+          {"path": "arguments.target_metric", "operator": "equals", "value": "sales"},
+          {"path": "arguments.filters.period", "operator": "equals", "value": "2025-Q3"},
+          {"path": "arguments.target_dataset", "operator": "equals", "value": "sales"}
         ]
       },
-      "citation_required": true,
-      "answer_assertions": [
-        "指定された年と集計軸で結果を返す"
-      ],
-      "answer_format": {
-        "json_schema": {
-          "type": "object",
-          "properties": {
-            "result": {},
-            "citation": {
-              "type": "string",
-              "pattern": "^\\[[A-Za-z0-9_.:-]+\\]$"
-            }
-          },
-          "required": [
-            "result",
-            "citation"
-          ],
-          "additionalProperties": false
-        },
-        "required_sections": [
-          "result",
-          "citation"
-        ]
-      }
+      "citation_required": false,
+      "answer_assertions": ["上位3製品を自然言語で返す"],
+      "answer_format": {"format_type": "natural_language"}
     },
-    "budgets": {
-      "max_latency_ms": 1200,
-      "max_cost_usd": 0.02
-    },
+    "budgets": {"max_latency_ms": 1200, "max_cost_usd": 0.02},
     "repeat": 1,
-    "tags": [
-      "synthetic",
-      "public",
-      "structured_query",
-      "json_format"
-    ]
+    "tags": ["synthetic", "public", "structured_query", "natural_language"]
   },
   {
     "schema_version": "1.0",
@@ -1136,7 +861,7 @@
     "category": "compare",
     "severity": "high",
     "input": {
-      "question": "現行と改訂版のパスワードポリシーを比較してください。"
+      "question": "現行パスワードポリシーと改訂版パスワードポリシーの違いを教えてください。"
     },
     "expected": {
       "query_types": [
@@ -1169,7 +894,7 @@
               "items": {
                 "type": "string"
               },
-              "minItems": 2
+              "minItems": 1
             }
           },
           "required": [
@@ -1185,17 +910,17 @@
           {
             "path": "arguments.left",
             "operator": "equals",
-            "value": "password_policy_v1"
+            "value": "現行パスワードポリシー"
           },
           {
             "path": "arguments.right",
             "operator": "equals",
-            "value": "password_policy_v2"
+            "value": "改訂版パスワードポリシー"
           },
           {
             "path": "arguments.aspects",
             "operator": "contains",
-            "value": "minimum_length"
+            "value": "違い"
           }
         ]
       },
@@ -1205,10 +930,10 @@
       ],
       "answer_format": {
         "required_sections": [
-          "概要",
           "共通点",
           "相違点",
-          "推奨"
+          "向いているケース（使い分けの指針）",
+          "注意点"
         ]
       }
     },
@@ -1231,7 +956,7 @@
     "category": "compare",
     "severity": "high",
     "input": {
-      "question": "監査ログ基準とサポートログ基準の保持期間を比較してください。"
+      "question": "監査ログ基準とサポートログ基準の違いを教えてください。"
     },
     "expected": {
       "query_types": [
@@ -1264,7 +989,7 @@
               "items": {
                 "type": "string"
               },
-              "minItems": 2
+              "minItems": 1
             }
           },
           "required": [
@@ -1280,17 +1005,17 @@
           {
             "path": "arguments.left",
             "operator": "equals",
-            "value": "audit_log_standard"
+            "value": "監査ログ基準"
           },
           {
             "path": "arguments.right",
             "operator": "equals",
-            "value": "support_log_standard"
+            "value": "サポートログ基準"
           },
           {
             "path": "arguments.aspects",
             "operator": "contains",
-            "value": "retention_days"
+            "value": "違い"
           }
         ]
       },
@@ -1300,10 +1025,10 @@
       ],
       "answer_format": {
         "required_sections": [
-          "概要",
           "共通点",
           "相違点",
-          "推奨"
+          "向いているケース（使い分けの指針）",
+          "注意点"
         ]
       }
     },
@@ -1326,7 +1051,7 @@
     "category": "compare",
     "severity": "critical",
     "input": {
-      "question": "会員登録API v1とv2のエラー仕様を比較してください。"
+      "question": "会員登録API v1と会員登録API v2の違いを教えてください。"
     },
     "expected": {
       "query_types": [
@@ -1359,7 +1084,7 @@
               "items": {
                 "type": "string"
               },
-              "minItems": 2
+              "minItems": 1
             }
           },
           "required": [
@@ -1375,17 +1100,17 @@
           {
             "path": "arguments.left",
             "operator": "equals",
-            "value": "signup_api_v1"
+            "value": "会員登録API v1"
           },
           {
             "path": "arguments.right",
             "operator": "equals",
-            "value": "signup_api_v2"
+            "value": "会員登録API v2"
           },
           {
             "path": "arguments.aspects",
             "operator": "contains",
-            "value": "duplicate_email"
+            "value": "違い"
           }
         ]
       },
@@ -1395,10 +1120,10 @@
       ],
       "answer_format": {
         "required_sections": [
-          "概要",
           "共通点",
           "相違点",
-          "推奨"
+          "向いているケース（使い分けの指針）",
+          "注意点"
         ]
       }
     },
@@ -1428,7 +1153,6 @@
         "insufficient_evidence"
       ],
       "routes": [
-        "insufficient_evidence",
         "retrieval"
       ],
       "tool_calls": [
@@ -1510,7 +1234,6 @@
         "insufficient_evidence"
       ],
       "routes": [
-        "insufficient_evidence",
         "retrieval"
       ],
       "tool_calls": [
@@ -1592,8 +1315,7 @@
         "fallback"
       ],
       "routes": [
-        "degraded",
-        "fallback"
+        "retrieval"
       ],
       "tool_calls": [
         "hybrid_search"
@@ -1663,4 +1385,3 @@
     ]
   }
 ]
-

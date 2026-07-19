@@ -20,7 +20,9 @@ def evaluate_answer_format(
 ) -> CheckResult:
     expectation = case.expected.answer_format
     configured = expectation is not None and bool(
-        expectation.json_schema is not None or expectation.required_sections
+        expectation.format_type is not None
+        or expectation.json_schema is not None
+        or expectation.required_sections
     )
     if not configured or expectation is None:
         return CheckResult(
@@ -37,16 +39,29 @@ def evaluate_answer_format(
     parsed_answer: Any = None
     answer_is_json = False
 
-    if expectation.json_schema is not None or expectation.required_sections:
+    if (
+        expectation.format_type in {"json", "natural_language"}
+        or expectation.json_schema is not None
+        or expectation.required_sections
+    ):
         try:
             parsed_answer = json.loads(answer)
             answer_is_json = True
         except json.JSONDecodeError:
             pass
 
+    if expectation.format_type == "json" and not answer_is_json:
+        errors.append("Answer is not valid JSON")
+    elif expectation.format_type == "natural_language":
+        if not answer.strip():
+            errors.append("Answer is empty")
+        elif answer_is_json:
+            errors.append("Answer must be natural language, not JSON")
+
     if expectation.json_schema is not None:
         if not answer_is_json:
-            errors.append("Answer is not valid JSON")
+            if "Answer is not valid JSON" not in errors:
+                errors.append("Answer is not valid JSON")
         else:
             validator_class = validator_for(expectation.json_schema)
             try:

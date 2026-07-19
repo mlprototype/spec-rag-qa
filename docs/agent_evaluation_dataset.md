@@ -17,19 +17,19 @@
 | `agent-definition-password-policy` | definition | high | retrieval | hybrid_search |
 | `agent-retrieval-error-409` | retrieval | high | retrieval | hybrid_search |
 | `agent-retrieval-audit-user-id` | retrieval | high | retrieval | hybrid_search |
-| `agent-complex-lockout-exceptions` | retrieval_complex | critical | agentic_retrieval / retrieval | hybrid_search |
-| `agent-complex-retention-conflict` | retrieval_complex | critical | agentic_retrieval / retrieval | hybrid_search |
-| `agent-complex-incident-procedure` | retrieval_complex | high | agentic_retrieval / retrieval | hybrid_search |
-| `agent-structured-orders-2025` | structured_query | medium | structured_query | structured_query_tool |
-| `agent-structured-errors-monthly` | structured_query | medium | structured_query | structured_query_tool |
-| `agent-structured-active-users-department` | structured_query | medium | structured_query | structured_query_tool |
-| `agent-structured-revenue-quarter` | structured_query | high | structured_query | structured_query_tool |
+| `agent-complex-lockout-exceptions` | retrieval_complex | critical | retrieval | hybrid_search |
+| `agent-complex-retention-conflict` | retrieval_complex | critical | retrieval | hybrid_search |
+| `agent-complex-incident-procedure` | retrieval_complex | high | retrieval | hybrid_search |
+| `agent-structured-orders-q1` | structured_query | medium | structured_query | structured_query_tool |
+| `agent-structured-sales-q2` | structured_query | medium | structured_query | structured_query_tool |
+| `agent-structured-inventory-average` | structured_query | medium | structured_query | structured_query_tool |
+| `agent-structured-sales-top-q3` | structured_query | high | structured_query | structured_query_tool |
 | `agent-compare-password-policies` | compare | high | compare | compare_documents |
 | `agent-compare-retention-standards` | compare | high | compare | compare_documents |
 | `agent-compare-api-versions` | compare | critical | compare | compare_documents |
-| `agent-insufficient-future-roadmap` | insufficient_evidence | high | insufficient_evidence / retrieval | hybrid_search |
-| `agent-insufficient-unpublished-pricing` | insufficient_evidence | high | insufficient_evidence / retrieval | hybrid_search |
-| `agent-fallback-search-timeout` | fallback | critical | degraded / fallback | hybrid_search |
+| `agent-insufficient-future-roadmap` | insufficient_evidence | high | retrieval | hybrid_search |
+| `agent-insufficient-unpublished-pricing` | insufficient_evidence | high | retrieval | hybrid_search |
+| `agent-fallback-search-timeout` | fallback | critical | retrieval | hybrid_search |
 
 カテゴリ分布は direct 3、definition 2、retrieval 2、retrieval_complex 3、structured_query 4、compare 3、insufficient_evidence 2、fallback 1です。definition/retrievalの合計は4件です。
 
@@ -60,11 +60,13 @@ PYTHONPATH=src python scripts/run_agent_evaluation.py \
   --output /tmp/agent-evaluation.json
 ```
 
-`subprocess` はシェルを経由せず、指定コマンドへ `--case-id`、`--question`、`--output` を追加します。ai-agent-rag#6のTrace契約に合わせ、`timing.total_latency_ms`、nullableな `usage`、Source内の `citation_id` を共通 `AgentRunTrace` へ正規化します。
+`subprocess` はシェルを経由せず、指定コマンドへ `--case-id`、`--question`、`--output` を追加します。ai-agent-rag#6の `timing.latency_ms`、nullableな `usage`、独立したCitation／Sourceを共通 `AgentRunTrace` として読み込みます。互換入力として `timing.total_latency_ms` とSource内の `citation_id` も正規化できます。
 
 Runner timeout、終了コード非0、不正JSON、case_id不一致は、それぞれ専用例外となります。CLIは該当ケースを `execution_errors` へ記録し、ほかのケースの決定論的評価を継続します。終了コードは、全成功が0、評価FAILが1、事前検査または実行エラーが2です。
 
-現時点の隣接 `ai-agent-rag` checkoutには、ai-agent-rag#6で予定されている `scripts/run_agent_trace.py` がまだありません。そのため実Agentとの結合確認は未実施です。Adapter契約については、同じCLI引数とTrace出力を実装したモックSubprocessにより direct、structured_query、retrieval、compareの経路を検証しています。上流CLIが提供されたら、上記コマンドをそのまま実結合試験へ切り替えます。
+隣接 `ai-agent-rag` checkoutの `scripts/run_agent_trace.py` との実結合では、directの共通Routeと、Structured Queryケースの共通Route、`operation / target_metric / filters / target_dataset`、自然言語回答、Citationなしの契約を確認しています。retrieval、compareはモックSubprocessでAdapter経路を検証しています。実データを必要とするretrieval／compareの品質確認は、評価用コーパスの外部送信可否を確認した環境で実施します。
+
+共通Routeは `direct / structured_query / retrieval / compare` の4種類です。内部RouteはTraceの `output.metadata.internal_route` に観測事実として残し、期待Routeには使用しません。Structured Queryの回答は自然言語として評価し、構造化データSource自体には回答内Citationが付与されない現行仕様に合わせてCitationを必須にしていません。Compareは `left / right / aspects` を評価し、既存Agentの4見出し「共通点」「相違点」「向いているケース（使い分けの指針）」「注意点」を要求します。
 
 ## 事前検査
 
