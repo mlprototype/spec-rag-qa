@@ -1,0 +1,81 @@
+schema_version: "1.0"
+
+absolute_gates:
+  - id: execution_errors
+    metric_path: counts.execution_errors
+    operator: lte
+    threshold: 0
+    allow_na: false
+    reason: Runner failure is not an evaluable Agent result and must block the deterministic gate.
+
+  - id: critical_task_success
+    metric_path: distributions.severity.critical.metrics.task_success_rate.value
+    operator: gte
+    threshold: 1.0
+    allow_na: false
+    reason: A Critical case failure cannot be offset by lower-severity averages.
+
+  - id: required_tool_call_rate
+    metric_path: metrics.required_tool_call_rate.value
+    operator: gte
+    threshold: 1.0
+    allow_na: true
+    reason: Every required Tool call must be observed when the dataset contains Tool cases.
+
+  - id: tool_argument_schema_compliance
+    metric_path: metrics.tool_argument_schema_compliance.value
+    operator: gte
+    threshold: 1.0
+    allow_na: true
+    reason: Invalid Tool arguments can cause unsafe or failed downstream execution.
+
+  - id: citation_validity
+    metric_path: metrics.citation_validity_rate.value
+    operator: gte
+    threshold: 1.0
+    allow_na: true
+    reason: Every emitted Citation must resolve to an observed Source.
+
+  - id: critical_format_compliance
+    metric_path: distributions.severity.critical.metrics.answer_format_compliance.value
+    operator: gte
+    threshold: 1.0
+    allow_na: false
+    reason: Critical answers must preserve their machine-checkable response contract.
+
+baseline_relative_gates:
+  - id: overall_task_success_regression
+    metric_path: metrics.task_success_rate.value
+    baseline_path: metrics.task_success_rate
+    direction: higher_is_better
+    min_ratio: 1.0
+    allow_na: false
+    reason: Overall Task Success must not regress from the reviewed Baseline.
+
+  - id: route_accuracy_regression
+    metric_path: metrics.route_selection_accuracy.value
+    baseline_path: metrics.route_selection_accuracy
+    direction: higher_is_better
+    min_ratio: 1.0
+    allow_na: false
+    reason: Route Selection Accuracy must not regress from the reviewed Baseline.
+
+  - id: latency_p95_regression
+    metric_path: latency.p95_ms
+    baseline_path: metrics.latency_p95_ms
+    direction: lower_is_better
+    max_ratio: 1.10
+    allow_na: false
+    reason: p95 latency may vary, but a regression above 10 percent requires review.
+
+failure_owners:
+  ROUTE_MISMATCH: agent-routing
+  REQUIRED_TOOL_NOT_CALLED: agent-tooling
+  UNEXPECTED_TOOL_CALLED: agent-tooling
+  TOOL_ARGUMENT_SCHEMA_INVALID: tool-contract
+  TOOL_ARGUMENT_SEMANTIC_MISMATCH: evaluation-dataset
+  CITATION_MISSING: retrieval-grounding
+  CITATION_INVALID: retrieval-grounding
+  ANSWER_FORMAT_INVALID: response-contract
+  LATENCY_BUDGET_EXCEEDED: performance
+  TASK_FAILED: agent-quality

@@ -68,6 +68,20 @@ Runner timeout、終了コード非0、不正JSON、case_id不一致は、それ
 
 共通Routeは `direct / structured_query / retrieval / compare` の4種類です。内部RouteはTraceの `output.metadata.internal_route` に観測事実として残し、期待Routeには使用しません。Structured Queryの回答は自然言語として評価し、構造化データSource自体には回答内Citationが付与されない現行仕様に合わせてCitationを必須にしていません。Compareも自然言語回答を必須とし、`left / right / aspects` と既存Agentの4セクション「共通点」「相違点」「向いているケース（使い分けの指針）」「注意点」を評価します。セクションラベルはMarkdown見出し、番号付き項目、コロン付きラベルを認識しますが、本文中の部分文字列では合格しません。
 
+## Report、品質Gate、Baseline
+
+標準実行はGit管理されない `.artifacts/agent-quality/report.json` と `report.md` を生成します。Git管理する出力例は `data/agent_eval/reports/example.json` と `example.md` で、CI生成物とは分離しています。Reportには全体とcategory／severity別のTask Success、各決定論的指標、Route混同行列、latencyのaverage／p50／p95／max、Failure Typeとowner、`execution_error` を含みます。分母が0の指標はJSONで `null`、Markdownで `N/A` とし、100%には変換しません。
+
+Gate定義は `config/agent_quality_gate.yml`、review済みBaselineは `data/agent_eval/baseline/agent_baseline.json` です。通常実行はBaselineを読み取るだけです。Baselineの置換は次の明示操作に限定され、いずれかの絶対GateまたはRunner実行に問題がある場合は更新しません。
+
+```bash
+PYTHONPATH=src python scripts/run_agent_evaluation.py \
+  --runner fixture \
+  --update-baseline
+```
+
+PR用GitHub ActionsはFixtureで同じGateを実行します。評価前に `.artifacts/agent-quality/` を削除・再作成し、今回生成したJSON、Markdown、実行ログだけを `if: always()` でartifact化します。実Agentは手動dispatchの別Jobに分離し、対象 `ai-agent-rag` revisionも明示して実行します。
+
 ## 事前検査
 
 評価開始前に次を検査します。

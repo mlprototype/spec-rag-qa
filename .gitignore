@@ -223,6 +223,9 @@ _all_project_code.txt
 # Generated diagrams (not committed)
 artifacts/diagrams/
 
+# Generated CI and local evaluation artifacts
+.artifacts/
+
 # Local indexes and generated baseline reports
 data/index/
 data/eval/*baseline*
@@ -235,4 +238,3 @@ data/eval/*baseline*
 # Rule and helper scripts
 GEMINI.md
 merge_code.py
-
