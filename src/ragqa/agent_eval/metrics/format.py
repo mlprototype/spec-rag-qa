@@ -86,7 +86,7 @@ def evaluate_answer_format(
         missing_sections = [
             section
             for section in expectation.required_sections
-            if not _markdown_heading_exists(answer, section)
+            if not _natural_language_section_exists(answer, section)
         ]
     if missing_sections:
         errors.append(f"Missing required sections: {', '.join(missing_sections)}")
@@ -108,9 +108,12 @@ def evaluate_answer_format(
     )
 
 
-def _markdown_heading_exists(answer: str, section: str) -> bool:
+def _natural_language_section_exists(answer: str, section: str) -> bool:
+    """Recognize an exact line-level section label without substring matches."""
+
     pattern = re.compile(
-        rf"(?m)^#{{1,6}}[ \t]+{re.escape(section)}[ \t]*$"
+        rf"(?m)^[ \t]*(?:#{{1,6}}[ \t]+|\d+[.)][ \t]+)?"
+        rf"{re.escape(section)}[ \t]*(?:[:：])?[ \t]*$"
     )
     return pattern.search(answer) is not None
 
