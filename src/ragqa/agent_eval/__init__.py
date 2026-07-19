@@ -1,6 +1,11 @@
 from ragqa.agent_eval.adapters.fixture import DuplicateFixtureTraceError, FixtureRunner
 from ragqa.agent_eval.adapters.subprocess import SubprocessAgentRunner
 from ragqa.agent_eval.adapters.trace_file import TraceFileRunner, load_saved_traces
+from ragqa.agent_eval.aggregator import (
+    aggregate_agent_evaluation,
+    build_route_confusion_matrix,
+    percentile,
+)
 from ragqa.agent_eval.assertions import evaluate_assertion, resolve_json_path
 from ragqa.agent_eval.evaluator import aggregate_metrics, evaluate_case, evaluate_cases
 from ragqa.agent_eval.failure_types import (
@@ -14,6 +19,14 @@ from ragqa.agent_eval.failure_types import (
     TOOL_ARGUMENT_SCHEMA_INVALID,
     TOOL_ARGUMENT_SEMANTIC_MISMATCH,
     UNEXPECTED_TOOL_CALLED,
+)
+from ragqa.agent_eval.gate import (
+    AgentQualityGateError,
+    build_baseline,
+    evaluate_quality_gate,
+    load_baseline,
+    load_gate_config,
+    maybe_update_baseline,
 )
 from ragqa.agent_eval.models import (
     AgentEvalBudgets,
@@ -52,6 +65,7 @@ from ragqa.agent_eval.runner import (
     TraceFileNotFoundError,
     load_cases,
 )
+from ragqa.agent_eval.report import build_report, render_markdown, write_reports
 from ragqa.agent_eval.validation import (
     DatasetValidationError,
     validate_case_contracts,
@@ -70,6 +84,7 @@ __all__ = [
     "AgentRunTrace",
     "AgentRunner",
     "AgentRunnerError",
+    "AgentQualityGateError",
     "ANSWER_FORMAT_INVALID",
     "AnswerFormatExpectation",
     "AssertionSpec",
@@ -108,13 +123,24 @@ __all__ = [
     "UNEXPECTED_TOOL_CALLED",
     "UsageTrace",
     "aggregate_metrics",
+    "aggregate_agent_evaluation",
+    "build_baseline",
+    "build_report",
+    "build_route_confusion_matrix",
     "evaluate_assertion",
     "evaluate_case",
     "evaluate_cases",
+    "evaluate_quality_gate",
+    "load_baseline",
     "load_cases",
+    "load_gate_config",
     "load_saved_traces",
+    "maybe_update_baseline",
+    "percentile",
+    "render_markdown",
     "resolve_json_path",
     "validate_case_contracts",
     "validate_dataset",
     "validate_trace_coverage",
+    "write_reports",
 ]

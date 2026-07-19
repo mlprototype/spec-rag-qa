@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
 import shlex
 import sys
 from pathlib import Path
@@ -25,10 +24,24 @@ from ragqa.agent_eval import (
     validate_case_contracts,
     validate_dataset,
 )
+from ragqa.agent_eval.aggregator import aggregate_agent_evaluation
+from ragqa.agent_eval.gate import (
+    AgentQualityGateError,
+    build_baseline,
+    evaluate_quality_gate,
+    load_baseline,
+    load_gate_config,
+    maybe_update_baseline,
+)
+from ragqa.agent_eval.report import build_report, write_reports
 
 
 DEFAULT_CASES = Path("data/agent_eval/cases/phase6_synthetic.json")
 DEFAULT_TRACES = Path("data/agent_eval/fixtures/phase6_synthetic_traces.json")
+DEFAULT_GATE_CONFIG = Path("config/agent_quality_gate.yml")
+DEFAULT_BASELINE = Path("data/agent_eval/baseline/agent_baseline.json")
+DEFAULT_REPORT_JSON = Path("data/agent_eval/reports/latest.json")
+DEFAULT_REPORT_MARKDOWN = Path("data/agent_eval/reports/latest.md")
 FALLBACK_CATEGORIES = {"fallback", "degraded"}
 
 
@@ -47,12 +60,26 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--subprocess-cwd", type=Path)
     parser.add_argument("--timeout-seconds", type=float, default=30.0)
-    parser.add_argument("--output", type=Path)
+    parser.add_argument(
+        "--output",
+        type=Path,
+        help="Backward-compatible alias for --report-json",
+    )
+    parser.add_argument("--report-json", type=Path)
+    parser.add_argument("--report-markdown", type=Path)
+    parser.add_argument("--gate-config", type=Path, default=DEFAULT_GATE_CONFIG)
+    parser.add_argument("--baseline", type=Path, default=DEFAULT_BASELINE)
+    parser.add_argument(
+        "--update-baseline",
+        action="store_true",
+        help="Explicitly replace the reviewed Baseline after absolute Gates pass",
+    )
     return parser
 
 
 async def run_evaluation(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
     cases = load_cases(args.cases)
+    gate_config = load_gate_config(args.gate_config)
     runner = _build_runner(args, cases)
     successful_cases: list[AgentEvalCase] = []
     traces: list[AgentRunTrace] = []
@@ -96,22 +123,47 @@ async def run_evaluation(args: argparse.Namespace) -> tuple[dict[str, Any], int]
         key: value.model_dump(mode="json")
         for key, value in aggregate_metrics(normal_results).items()
     }
-    report = {
-        "schema_version": evaluation.schema_version,
-        "runner": args.runner,
-        "total_cases": len(cases),
-        "evaluated_cases": len(successful_cases),
-        "execution_errors": execution_errors,
-        "evaluation": evaluation.model_dump(mode="json"),
-        "normal_metrics": normal_metrics,
-        "category_metrics": category_metrics,
-    }
+    failure_owners = gate_config.get("failure_owners", {})
+    aggregation = aggregate_agent_evaluation(
+        cases,
+        traces,
+        evaluation,
+        execution_errors,
+        failure_owners=failure_owners,
+    )
+
+    baseline_updated = False
+    if args.update_baseline:
+        baseline = build_baseline(aggregation)
+    else:
+        baseline = load_baseline(args.baseline)
+    gate = evaluate_quality_gate(aggregation, gate_config, baseline)
+
+    if args.update_baseline and gate["passed"] and not execution_errors:
+        baseline_updated = maybe_update_baseline(
+            args.baseline,
+            aggregation,
+            enabled=True,
+        )
+
+    report = build_report(
+        runner=args.runner,
+        cases_path=args.cases,
+        traces_path=args.traces,
+        evaluation=evaluation,
+        aggregation=aggregation,
+        execution_errors=execution_errors,
+        gate=gate,
+        baseline_path=args.baseline,
+        baseline_updated=baseline_updated,
+    )
+    # Preserve the Issue #11 normal-path view for existing report consumers.
+    report["normal_metrics"] = normal_metrics
+    report["category_metrics"] = category_metrics
 
     if execution_errors:
         return report, 2
-    if any(not result.passed for result in evaluation.cases):
-        return report, 1
-    return report, 0
+    return report, 0 if gate["passed"] else 1
 
 
 def _build_runner(args: argparse.Namespace, cases: list[AgentEvalCase]) -> AgentRunner:
@@ -137,9 +189,15 @@ def _build_runner(args: argparse.Namespace, cases: list[AgentEvalCase]) -> Agent
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    json_path, markdown_path = _report_paths(args)
     try:
         report, exit_code = asyncio.run(run_evaluation(args))
-    except (AgentRunnerError, DatasetValidationError, ValueError) as exc:
+    except (
+        AgentQualityGateError,
+        AgentRunnerError,
+        DatasetValidationError,
+        ValueError,
+    ) as exc:
         report = {
             "runner": args.runner,
             "preflight_error": {
@@ -149,13 +207,24 @@ def main(argv: list[str] | None = None) -> int:
         }
         exit_code = 2
 
-    output = json.dumps(report, ensure_ascii=False, indent=2)
-    if args.output is not None:
-        args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(output + "\n", encoding="utf-8")
-    else:
-        print(output)
+    write_reports(report, json_path, markdown_path)
+    print(
+        f"Agent quality gate: "
+        f"{'PASS' if exit_code == 0 else 'FAIL'} "
+        f"(JSON: {json_path}, Markdown: {markdown_path})"
+    )
     return exit_code
+
+
+def _report_paths(args: argparse.Namespace) -> tuple[Path, Path]:
+    json_path = args.output or args.report_json or DEFAULT_REPORT_JSON
+    if args.report_markdown is not None:
+        markdown_path = args.report_markdown
+    elif args.output is not None or args.report_json is not None:
+        markdown_path = json_path.with_suffix(".md")
+    else:
+        markdown_path = DEFAULT_REPORT_MARKDOWN
+    return json_path, markdown_path
 
 
 if __name__ == "__main__":
