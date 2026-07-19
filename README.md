@@ -388,6 +388,10 @@ spec-rag-qa/
 └── requirements.txt                        # 依存ライブラリ
 ```
 
+## Agent評価
+
+Phase 6の決定論的Agent評価は、20件の公開可能な合成ケースをFixture、保存Trace、Subprocess Adapterから同じ評価パイプラインへ入力できます。ケース一覧、実行方法、事前検査、合成データの限界は [docs/agent_evaluation_dataset.md](docs/agent_evaluation_dataset.md) を参照してください。
+
 ## 既知の制限
 
 現在の品質管理は有効ですが、Goodhart's Law を避けるには「測っている指標が真の品質を完全には代表しない」ことを明示しておく必要があります。以下の制約は、既知のリスクとして管理対象に含めるべきものです。

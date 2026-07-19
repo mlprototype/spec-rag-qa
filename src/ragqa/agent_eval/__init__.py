@@ -1,4 +1,6 @@
 from ragqa.agent_eval.adapters.fixture import DuplicateFixtureTraceError, FixtureRunner
+from ragqa.agent_eval.adapters.subprocess import SubprocessAgentRunner
+from ragqa.agent_eval.adapters.trace_file import TraceFileRunner, load_saved_traces
 from ragqa.agent_eval.assertions import evaluate_assertion, resolve_json_path
 from ragqa.agent_eval.evaluator import aggregate_metrics, evaluate_case, evaluate_cases
 from ragqa.agent_eval.failure_types import (
@@ -36,12 +38,25 @@ from ragqa.agent_eval.models import (
     UsageTrace,
 )
 from ragqa.agent_eval.runner import (
+    AgentRunnerError,
     AgentRunner,
     DuplicateCaseIdError,
     FixtureTraceMismatchError,
     FixtureTraceNotFoundError,
+    RunnerCaseIdMismatchError,
+    RunnerInvalidJSONError,
+    RunnerLaunchError,
+    RunnerNonZeroExitError,
+    RunnerTimeoutError,
     SchemaVersionMismatchError,
+    TraceFileNotFoundError,
     load_cases,
+)
+from ragqa.agent_eval.validation import (
+    DatasetValidationError,
+    validate_case_contracts,
+    validate_dataset,
+    validate_trace_coverage,
 )
 
 __all__ = [
@@ -54,6 +69,7 @@ __all__ = [
     "AgentRunOutput",
     "AgentRunTrace",
     "AgentRunner",
+    "AgentRunnerError",
     "ANSWER_FORMAT_INVALID",
     "AnswerFormatExpectation",
     "AssertionSpec",
@@ -65,6 +81,7 @@ __all__ = [
     "ControlTrace",
     "DuplicateCaseIdError",
     "DuplicateFixtureTraceError",
+    "DatasetValidationError",
     "FixtureRunner",
     "FixtureTraceMismatchError",
     "FixtureTraceNotFoundError",
@@ -73,10 +90,18 @@ __all__ = [
     "MetricAggregate",
     "REQUIRED_TOOL_NOT_CALLED",
     "ROUTE_MISMATCH",
+    "RunnerCaseIdMismatchError",
+    "RunnerInvalidJSONError",
+    "RunnerLaunchError",
+    "RunnerNonZeroExitError",
+    "RunnerTimeoutError",
     "SchemaVersionMismatchError",
     "SourceTrace",
+    "SubprocessAgentRunner",
     "TASK_FAILED",
     "TimingTrace",
+    "TraceFileNotFoundError",
+    "TraceFileRunner",
     "ToolCallTrace",
     "TOOL_ARGUMENT_SCHEMA_INVALID",
     "TOOL_ARGUMENT_SEMANTIC_MISMATCH",
@@ -87,5 +112,9 @@ __all__ = [
     "evaluate_case",
     "evaluate_cases",
     "load_cases",
+    "load_saved_traces",
     "resolve_json_path",
+    "validate_case_contracts",
+    "validate_dataset",
+    "validate_trace_coverage",
 ]

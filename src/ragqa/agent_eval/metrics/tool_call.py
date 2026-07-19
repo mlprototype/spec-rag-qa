@@ -59,6 +59,7 @@ def evaluate_unexpected_tool_calls(
     case: AgentEvalCase, trace: AgentRunTrace
 ) -> CheckResult:
     expected_tools = set(case.expected.tool_calls)
+    forbidden_tools = set(case.expected.forbidden_tool_calls)
     actual_tools = [call.name for call in trace.tool_calls]
     unexpected = [name for name in actual_tools if name not in expected_tools]
     unexpected_rate = len(unexpected) / len(actual_tools) if actual_tools else 0.0
@@ -73,6 +74,7 @@ def evaluate_unexpected_tool_calls(
         message=None if passed else f"Unexpected tool call(s): {', '.join(unexpected)}",
         details={
             "expected_tools": sorted(expected_tools),
+            "forbidden_tools": sorted(forbidden_tools),
             "actual_tools": actual_tools,
             "unexpected_tools": unexpected,
             "unexpected_count": len(unexpected),

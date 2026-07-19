@@ -1,0 +1,1666 @@
+[
+  {
+    "schema_version": "1.0",
+    "id": "agent-direct-greeting",
+    "category": "direct",
+    "severity": "low",
+    "input": {
+      "question": "こんにちは。利用できる機能を簡潔に教えてください。"
+    },
+    "expected": {
+      "query_types": [
+        "direct"
+      ],
+      "routes": [
+        "direct"
+      ],
+      "tool_calls": [],
+      "forbidden_tool_calls": [
+        "hybrid_search",
+        "structured_query_tool",
+        "compare_documents"
+      ],
+      "tool_argument_schemas": {},
+      "tool_argument_assertions": {},
+      "citation_required": false,
+      "answer_assertions": [
+        "挨拶に簡潔に応答する"
+      ],
+      "answer_format": {
+        "required_sections": [
+          "回答"
+        ]
+      }
+    },
+    "budgets": {
+      "max_latency_ms": 300,
+      "max_cost_usd": 0.02
+    },
+    "repeat": 1,
+    "tags": [
+      "synthetic",
+      "public",
+      "direct"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "agent-direct-help",
+    "category": "direct",
+    "severity": "low",
+    "input": {
+      "question": "このQAシステムの使い方を一文で説明してください。"
+    },
+    "expected": {
+      "query_types": [
+        "direct"
+      ],
+      "routes": [
+        "direct"
+      ],
+      "tool_calls": [],
+      "forbidden_tool_calls": [
+        "hybrid_search",
+        "structured_query_tool",
+        "compare_documents"
+      ],
+      "tool_argument_schemas": {},
+      "tool_argument_assertions": {},
+      "citation_required": false,
+      "answer_assertions": [
+        "質問方法を説明する"
+      ],
+      "answer_format": {
+        "required_sections": [
+          "回答"
+        ]
+      }
+    },
+    "budgets": {
+      "max_latency_ms": 300,
+      "max_cost_usd": 0.02
+    },
+    "repeat": 1,
+    "tags": [
+      "synthetic",
+      "public",
+      "direct"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "agent-direct-scope",
+    "category": "direct",
+    "severity": "low",
+    "input": {
+      "question": "個人情報を入力せずに質問できますか。"
+    },
+    "expected": {
+      "query_types": [
+        "direct"
+      ],
+      "routes": [
+        "direct"
+      ],
+      "tool_calls": [],
+      "forbidden_tool_calls": [
+        "hybrid_search",
+        "structured_query_tool",
+        "compare_documents"
+      ],
+      "tool_argument_schemas": {},
+      "tool_argument_assertions": {},
+      "citation_required": false,
+      "answer_assertions": [
+        "機密情報を入力しないよう案内する"
+      ],
+      "answer_format": {
+        "required_sections": [
+          "回答"
+        ]
+      }
+    },
+    "budgets": {
+      "max_latency_ms": 300,
+      "max_cost_usd": 0.02
+    },
+    "repeat": 1,
+    "tags": [
+      "synthetic",
+      "public",
+      "direct"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "agent-definition-session-timeout",
+    "category": "definition",
+    "severity": "medium",
+    "input": {
+      "question": "セッションタイムアウトの定義を教えてください。"
+    },
+    "expected": {
+      "query_types": [
+        "definition"
+      ],
+      "routes": [
+        "retrieval"
+      ],
+      "tool_calls": [
+        "hybrid_search"
+      ],
+      "forbidden_tool_calls": [
+        "structured_query_tool",
+        "compare_documents"
+      ],
+      "tool_argument_schemas": {
+        "hybrid_search": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "minLength": 1
+            },
+            "top_k": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20
+            }
+          },
+          "required": [
+            "query",
+            "top_k"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "tool_argument_assertions": {
+        "hybrid_search": [
+          {
+            "path": "arguments.query",
+            "operator": "contains",
+            "value": "セッション"
+          },
+          {
+            "path": "arguments.top_k",
+            "operator": "gte",
+            "value": 3
+          }
+        ]
+      },
+      "citation_required": true,
+      "answer_assertions": [
+        "30分を説明する"
+      ],
+      "answer_format": {
+        "required_sections": [
+          "回答"
+        ]
+      }
+    },
+    "budgets": {
+      "max_latency_ms": 1000,
+      "max_cost_usd": 0.02
+    },
+    "repeat": 1,
+    "tags": [
+      "synthetic",
+      "public",
+      "definition",
+      "citation"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "agent-definition-password-policy",
+    "category": "definition",
+    "severity": "high",
+    "input": {
+      "question": "パスワード最小文字数の定義は何ですか。"
+    },
+    "expected": {
+      "query_types": [
+        "definition"
+      ],
+      "routes": [
+        "retrieval"
+      ],
+      "tool_calls": [
+        "hybrid_search"
+      ],
+      "forbidden_tool_calls": [
+        "structured_query_tool",
+        "compare_documents"
+      ],
+      "tool_argument_schemas": {
+        "hybrid_search": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "minLength": 1
+            },
+            "top_k": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20
+            }
+          },
+          "required": [
+            "query",
+            "top_k"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "tool_argument_assertions": {
+        "hybrid_search": [
+          {
+            "path": "arguments.query",
+            "operator": "contains",
+            "value": "パスワード"
+          },
+          {
+            "path": "arguments.top_k",
+            "operator": "gte",
+            "value": 3
+          }
+        ]
+      },
+      "citation_required": true,
+      "answer_assertions": [
+        "最小8文字を説明する"
+      ],
+      "answer_format": {
+        "required_sections": [
+          "回答"
+        ]
+      }
+    },
+    "budgets": {
+      "max_latency_ms": 1000,
+      "max_cost_usd": 0.02
+    },
+    "repeat": 1,
+    "tags": [
+      "synthetic",
+      "public",
+      "definition",
+      "citation"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "agent-retrieval-error-409",
+    "category": "retrieval",
+    "severity": "high",
+    "input": {
+      "question": "登録済みメールで会員登録した場合のHTTPステータスは何ですか。"
+    },
+    "expected": {
+      "query_types": [
+        "factual"
+      ],
+      "routes": [
+        "retrieval"
+      ],
+      "tool_calls": [
+        "hybrid_search"
+      ],
+      "forbidden_tool_calls": [
+        "structured_query_tool",
+        "compare_documents"
+      ],
+      "tool_argument_schemas": {
+        "hybrid_search": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "minLength": 1
+            },
+            "top_k": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20
+            }
+          },
+          "required": [
+            "query",
+            "top_k"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "tool_argument_assertions": {
+        "hybrid_search": [
+          {
+            "path": "arguments.query",
+            "operator": "contains",
+            "value": "登録済みメール"
+          },
+          {
+            "path": "arguments.top_k",
+            "operator": "gte",
+            "value": 3
+          }
+        ]
+      },
+      "citation_required": true,
+      "answer_assertions": [
+        "HTTP 409を説明する"
+      ],
+      "answer_format": {
+        "required_sections": [
+          "回答"
+        ]
+      }
+    },
+    "budgets": {
+      "max_latency_ms": 1000,
+      "max_cost_usd": 0.02
+    },
+    "repeat": 1,
+    "tags": [
+      "synthetic",
+      "public",
+      "retrieval",
+      "citation"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "agent-retrieval-audit-user-id",
+    "category": "retrieval",
+    "severity": "high",
+    "input": {
+      "question": "監査ログにUSER_IDは必須ですか。"
+    },
+    "expected": {
+      "query_types": [
+        "factual"
+      ],
+      "routes": [
+        "retrieval"
+      ],
+      "tool_calls": [
+        "hybrid_search"
+      ],
+      "forbidden_tool_calls": [
+        "structured_query_tool",
+        "compare_documents"
+      ],
+      "tool_argument_schemas": {
+        "hybrid_search": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "minLength": 1
+            },
+            "top_k": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20
+            }
+          },
+          "required": [
+            "query",
+            "top_k"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "tool_argument_assertions": {
+        "hybrid_search": [
+          {
+            "path": "arguments.query",
+            "operator": "contains",
+            "value": "USER_ID"
+          },
+          {
+            "path": "arguments.top_k",
+            "operator": "gte",
+            "value": 3
+          }
+        ]
+      },
+      "citation_required": true,
+      "answer_assertions": [
+        "USER_IDが必須であることを説明する"
+      ],
+      "answer_format": {
+        "required_sections": [
+          "回答"
+        ]
+      }
+    },
+    "budgets": {
+      "max_latency_ms": 1000,
+      "max_cost_usd": 0.02
+    },
+    "repeat": 1,
+    "tags": [
+      "synthetic",
+      "public",
+      "retrieval",
+      "citation"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "agent-complex-lockout-exceptions",
+    "category": "retrieval_complex",
+    "severity": "critical",
+    "input": {
+      "question": "アカウントロック条件と解除時の例外をまとめてください。"
+    },
+    "expected": {
+      "query_types": [
+        "retrieval_complex"
+      ],
+      "routes": [
+        "agentic_retrieval",
+        "retrieval"
+      ],
+      "tool_calls": [
+        "hybrid_search"
+      ],
+      "forbidden_tool_calls": [
+        "structured_query_tool",
+        "compare_documents"
+      ],
+      "tool_argument_schemas": {
+        "hybrid_search": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "minLength": 1
+            },
+            "top_k": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20
+            }
+          },
+          "required": [
+            "query",
+            "top_k"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "tool_argument_assertions": {
+        "hybrid_search": [
+          {
+            "path": "arguments.query",
+            "operator": "contains",
+            "value": "アカウントロック"
+          },
+          {
+            "path": "arguments.top_k",
+            "operator": "gte",
+            "value": 5
+          }
+        ]
+      },
+      "citation_required": true,
+      "answer_assertions": [
+        "条件と例外を分ける"
+      ],
+      "answer_format": {
+        "required_sections": [
+          "結論",
+          "根拠"
+        ]
+      }
+    },
+    "budgets": {
+      "max_latency_ms": 1800,
+      "max_cost_usd": 0.02
+    },
+    "repeat": 1,
+    "tags": [
+      "synthetic",
+      "public",
+      "retrieval_complex",
+      "citation"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "agent-complex-retention-conflict",
+    "category": "retrieval_complex",
+    "severity": "critical",
+    "input": {
+      "question": "監査ログとサポートログの保持期間が競合する場合の優先規則を説明してください。"
+    },
+    "expected": {
+      "query_types": [
+        "retrieval_complex"
+      ],
+      "routes": [
+        "agentic_retrieval",
+        "retrieval"
+      ],
+      "tool_calls": [
+        "hybrid_search"
+      ],
+      "forbidden_tool_calls": [
+        "structured_query_tool",
+        "compare_documents"
+      ],
+      "tool_argument_schemas": {
+        "hybrid_search": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "minLength": 1
+            },
+            "top_k": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20
+            }
+          },
+          "required": [
+            "query",
+            "top_k"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "tool_argument_assertions": {
+        "hybrid_search": [
+          {
+            "path": "arguments.query",
+            "operator": "contains",
+            "value": "保持期間"
+          },
+          {
+            "path": "arguments.top_k",
+            "operator": "gte",
+            "value": 5
+          }
+        ]
+      },
+      "citation_required": true,
+      "answer_assertions": [
+        "優先規則と各期間を示す"
+      ],
+      "answer_format": {
+        "required_sections": [
+          "結論",
+          "根拠"
+        ]
+      }
+    },
+    "budgets": {
+      "max_latency_ms": 1800,
+      "max_cost_usd": 0.02
+    },
+    "repeat": 1,
+    "tags": [
+      "synthetic",
+      "public",
+      "retrieval_complex",
+      "citation"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "agent-complex-incident-procedure",
+    "category": "retrieval_complex",
+    "severity": "high",
+    "input": {
+      "question": "認証障害時の検知から復旧確認までの手順を根拠付きで整理してください。"
+    },
+    "expected": {
+      "query_types": [
+        "retrieval_complex"
+      ],
+      "routes": [
+        "agentic_retrieval",
+        "retrieval"
+      ],
+      "tool_calls": [
+        "hybrid_search"
+      ],
+      "forbidden_tool_calls": [
+        "structured_query_tool",
+        "compare_documents"
+      ],
+      "tool_argument_schemas": {
+        "hybrid_search": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "minLength": 1
+            },
+            "top_k": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20
+            }
+          },
+          "required": [
+            "query",
+            "top_k"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "tool_argument_assertions": {
+        "hybrid_search": [
+          {
+            "path": "arguments.query",
+            "operator": "contains",
+            "value": "認証障害"
+          },
+          {
+            "path": "arguments.top_k",
+            "operator": "gte",
+            "value": 5
+          }
+        ]
+      },
+      "citation_required": true,
+      "answer_assertions": [
+        "手順を順序付きで説明する"
+      ],
+      "answer_format": {
+        "required_sections": [
+          "結論",
+          "根拠"
+        ]
+      }
+    },
+    "budgets": {
+      "max_latency_ms": 1800,
+      "max_cost_usd": 0.02
+    },
+    "repeat": 1,
+    "tags": [
+      "synthetic",
+      "public",
+      "retrieval_complex",
+      "citation"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "agent-structured-orders-2025",
+    "category": "structured_query",
+    "severity": "medium",
+    "input": {
+      "question": "2025年の注文件数を合計で教えてください。"
+    },
+    "expected": {
+      "query_types": [
+        "structured_query"
+      ],
+      "routes": [
+        "structured_query"
+      ],
+      "tool_calls": [
+        "structured_query_tool"
+      ],
+      "forbidden_tool_calls": [
+        "hybrid_search",
+        "compare_documents"
+      ],
+      "tool_argument_schemas": {
+        "structured_query_tool": {
+          "type": "object",
+          "properties": {
+            "metric": {
+              "type": "string",
+              "minLength": 1
+            },
+            "year": {
+              "type": "integer",
+              "minimum": 2020,
+              "maximum": 2030
+            },
+            "group_by": {
+              "type": "string",
+              "enum": [
+                "none",
+                "month",
+                "department",
+                "quarter"
+              ]
+            }
+          },
+          "required": [
+            "metric",
+            "year",
+            "group_by"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "tool_argument_assertions": {
+        "structured_query_tool": [
+          {
+            "path": "arguments.metric",
+            "operator": "equals",
+            "value": "order_count"
+          },
+          {
+            "path": "arguments.year",
+            "operator": "equals",
+            "value": 2025
+          },
+          {
+            "path": "arguments.group_by",
+            "operator": "equals",
+            "value": "none"
+          }
+        ]
+      },
+      "citation_required": true,
+      "answer_assertions": [
+        "指定された年と集計軸で結果を返す"
+      ],
+      "answer_format": {
+        "json_schema": {
+          "type": "object",
+          "properties": {
+            "result": {},
+            "citation": {
+              "type": "string",
+              "pattern": "^\\[[A-Za-z0-9_.:-]+\\]$"
+            }
+          },
+          "required": [
+            "result",
+            "citation"
+          ],
+          "additionalProperties": false
+        },
+        "required_sections": [
+          "result",
+          "citation"
+        ]
+      }
+    },
+    "budgets": {
+      "max_latency_ms": 1200,
+      "max_cost_usd": 0.02
+    },
+    "repeat": 1,
+    "tags": [
+      "synthetic",
+      "public",
+      "structured_query",
+      "json_format"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "agent-structured-errors-monthly",
+    "category": "structured_query",
+    "severity": "medium",
+    "input": {
+      "question": "2024年の認証エラー件数を月別に集計してください。"
+    },
+    "expected": {
+      "query_types": [
+        "structured_query"
+      ],
+      "routes": [
+        "structured_query"
+      ],
+      "tool_calls": [
+        "structured_query_tool"
+      ],
+      "forbidden_tool_calls": [
+        "hybrid_search",
+        "compare_documents"
+      ],
+      "tool_argument_schemas": {
+        "structured_query_tool": {
+          "type": "object",
+          "properties": {
+            "metric": {
+              "type": "string",
+              "minLength": 1
+            },
+            "year": {
+              "type": "integer",
+              "minimum": 2020,
+              "maximum": 2030
+            },
+            "group_by": {
+              "type": "string",
+              "enum": [
+                "none",
+                "month",
+                "department",
+                "quarter"
+              ]
+            }
+          },
+          "required": [
+            "metric",
+            "year",
+            "group_by"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "tool_argument_assertions": {
+        "structured_query_tool": [
+          {
+            "path": "arguments.metric",
+            "operator": "equals",
+            "value": "auth_error_count"
+          },
+          {
+            "path": "arguments.year",
+            "operator": "equals",
+            "value": 2024
+          },
+          {
+            "path": "arguments.group_by",
+            "operator": "equals",
+            "value": "month"
+          }
+        ]
+      },
+      "citation_required": true,
+      "answer_assertions": [
+        "指定された年と集計軸で結果を返す"
+      ],
+      "answer_format": {
+        "json_schema": {
+          "type": "object",
+          "properties": {
+            "result": {},
+            "citation": {
+              "type": "string",
+              "pattern": "^\\[[A-Za-z0-9_.:-]+\\]$"
+            }
+          },
+          "required": [
+            "result",
+            "citation"
+          ],
+          "additionalProperties": false
+        },
+        "required_sections": [
+          "result",
+          "citation"
+        ]
+      }
+    },
+    "budgets": {
+      "max_latency_ms": 1200,
+      "max_cost_usd": 0.02
+    },
+    "repeat": 1,
+    "tags": [
+      "synthetic",
+      "public",
+      "structured_query",
+      "json_format"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "agent-structured-active-users-department",
+    "category": "structured_query",
+    "severity": "medium",
+    "input": {
+      "question": "2026年のアクティブユーザー数を部署別に出してください。"
+    },
+    "expected": {
+      "query_types": [
+        "structured_query"
+      ],
+      "routes": [
+        "structured_query"
+      ],
+      "tool_calls": [
+        "structured_query_tool"
+      ],
+      "forbidden_tool_calls": [
+        "hybrid_search",
+        "compare_documents"
+      ],
+      "tool_argument_schemas": {
+        "structured_query_tool": {
+          "type": "object",
+          "properties": {
+            "metric": {
+              "type": "string",
+              "minLength": 1
+            },
+            "year": {
+              "type": "integer",
+              "minimum": 2020,
+              "maximum": 2030
+            },
+            "group_by": {
+              "type": "string",
+              "enum": [
+                "none",
+                "month",
+                "department",
+                "quarter"
+              ]
+            }
+          },
+          "required": [
+            "metric",
+            "year",
+            "group_by"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "tool_argument_assertions": {
+        "structured_query_tool": [
+          {
+            "path": "arguments.metric",
+            "operator": "equals",
+            "value": "active_user_count"
+          },
+          {
+            "path": "arguments.year",
+            "operator": "equals",
+            "value": 2026
+          },
+          {
+            "path": "arguments.group_by",
+            "operator": "equals",
+            "value": "department"
+          }
+        ]
+      },
+      "citation_required": true,
+      "answer_assertions": [
+        "指定された年と集計軸で結果を返す"
+      ],
+      "answer_format": {
+        "json_schema": {
+          "type": "object",
+          "properties": {
+            "result": {},
+            "citation": {
+              "type": "string",
+              "pattern": "^\\[[A-Za-z0-9_.:-]+\\]$"
+            }
+          },
+          "required": [
+            "result",
+            "citation"
+          ],
+          "additionalProperties": false
+        },
+        "required_sections": [
+          "result",
+          "citation"
+        ]
+      }
+    },
+    "budgets": {
+      "max_latency_ms": 1200,
+      "max_cost_usd": 0.02
+    },
+    "repeat": 1,
+    "tags": [
+      "synthetic",
+      "public",
+      "structured_query",
+      "json_format"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "agent-structured-revenue-quarter",
+    "category": "structured_query",
+    "severity": "high",
+    "input": {
+      "question": "2025年の売上を四半期別に集計してください。"
+    },
+    "expected": {
+      "query_types": [
+        "structured_query"
+      ],
+      "routes": [
+        "structured_query"
+      ],
+      "tool_calls": [
+        "structured_query_tool"
+      ],
+      "forbidden_tool_calls": [
+        "hybrid_search",
+        "compare_documents"
+      ],
+      "tool_argument_schemas": {
+        "structured_query_tool": {
+          "type": "object",
+          "properties": {
+            "metric": {
+              "type": "string",
+              "minLength": 1
+            },
+            "year": {
+              "type": "integer",
+              "minimum": 2020,
+              "maximum": 2030
+            },
+            "group_by": {
+              "type": "string",
+              "enum": [
+                "none",
+                "month",
+                "department",
+                "quarter"
+              ]
+            }
+          },
+          "required": [
+            "metric",
+            "year",
+            "group_by"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "tool_argument_assertions": {
+        "structured_query_tool": [
+          {
+            "path": "arguments.metric",
+            "operator": "equals",
+            "value": "revenue"
+          },
+          {
+            "path": "arguments.year",
+            "operator": "equals",
+            "value": 2025
+          },
+          {
+            "path": "arguments.group_by",
+            "operator": "equals",
+            "value": "quarter"
+          }
+        ]
+      },
+      "citation_required": true,
+      "answer_assertions": [
+        "指定された年と集計軸で結果を返す"
+      ],
+      "answer_format": {
+        "json_schema": {
+          "type": "object",
+          "properties": {
+            "result": {},
+            "citation": {
+              "type": "string",
+              "pattern": "^\\[[A-Za-z0-9_.:-]+\\]$"
+            }
+          },
+          "required": [
+            "result",
+            "citation"
+          ],
+          "additionalProperties": false
+        },
+        "required_sections": [
+          "result",
+          "citation"
+        ]
+      }
+    },
+    "budgets": {
+      "max_latency_ms": 1200,
+      "max_cost_usd": 0.02
+    },
+    "repeat": 1,
+    "tags": [
+      "synthetic",
+      "public",
+      "structured_query",
+      "json_format"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "agent-compare-password-policies",
+    "category": "compare",
+    "severity": "high",
+    "input": {
+      "question": "現行と改訂版のパスワードポリシーを比較してください。"
+    },
+    "expected": {
+      "query_types": [
+        "compare"
+      ],
+      "routes": [
+        "compare"
+      ],
+      "tool_calls": [
+        "compare_documents"
+      ],
+      "forbidden_tool_calls": [
+        "hybrid_search",
+        "structured_query_tool"
+      ],
+      "tool_argument_schemas": {
+        "compare_documents": {
+          "type": "object",
+          "properties": {
+            "left": {
+              "type": "string",
+              "minLength": 1
+            },
+            "right": {
+              "type": "string",
+              "minLength": 1
+            },
+            "aspects": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 2
+            }
+          },
+          "required": [
+            "left",
+            "right",
+            "aspects"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "tool_argument_assertions": {
+        "compare_documents": [
+          {
+            "path": "arguments.left",
+            "operator": "equals",
+            "value": "password_policy_v1"
+          },
+          {
+            "path": "arguments.right",
+            "operator": "equals",
+            "value": "password_policy_v2"
+          },
+          {
+            "path": "arguments.aspects",
+            "operator": "contains",
+            "value": "minimum_length"
+          }
+        ]
+      },
+      "citation_required": true,
+      "answer_assertions": [
+        "両資料の共通点と相違点を区別する"
+      ],
+      "answer_format": {
+        "required_sections": [
+          "概要",
+          "共通点",
+          "相違点",
+          "推奨"
+        ]
+      }
+    },
+    "budgets": {
+      "max_latency_ms": 1800,
+      "max_cost_usd": 0.02
+    },
+    "repeat": 1,
+    "tags": [
+      "synthetic",
+      "public",
+      "compare",
+      "four_sections",
+      "citation"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "agent-compare-retention-standards",
+    "category": "compare",
+    "severity": "high",
+    "input": {
+      "question": "監査ログ基準とサポートログ基準の保持期間を比較してください。"
+    },
+    "expected": {
+      "query_types": [
+        "compare"
+      ],
+      "routes": [
+        "compare"
+      ],
+      "tool_calls": [
+        "compare_documents"
+      ],
+      "forbidden_tool_calls": [
+        "hybrid_search",
+        "structured_query_tool"
+      ],
+      "tool_argument_schemas": {
+        "compare_documents": {
+          "type": "object",
+          "properties": {
+            "left": {
+              "type": "string",
+              "minLength": 1
+            },
+            "right": {
+              "type": "string",
+              "minLength": 1
+            },
+            "aspects": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 2
+            }
+          },
+          "required": [
+            "left",
+            "right",
+            "aspects"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "tool_argument_assertions": {
+        "compare_documents": [
+          {
+            "path": "arguments.left",
+            "operator": "equals",
+            "value": "audit_log_standard"
+          },
+          {
+            "path": "arguments.right",
+            "operator": "equals",
+            "value": "support_log_standard"
+          },
+          {
+            "path": "arguments.aspects",
+            "operator": "contains",
+            "value": "retention_days"
+          }
+        ]
+      },
+      "citation_required": true,
+      "answer_assertions": [
+        "両資料の共通点と相違点を区別する"
+      ],
+      "answer_format": {
+        "required_sections": [
+          "概要",
+          "共通点",
+          "相違点",
+          "推奨"
+        ]
+      }
+    },
+    "budgets": {
+      "max_latency_ms": 1800,
+      "max_cost_usd": 0.02
+    },
+    "repeat": 1,
+    "tags": [
+      "synthetic",
+      "public",
+      "compare",
+      "four_sections",
+      "citation"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "agent-compare-api-versions",
+    "category": "compare",
+    "severity": "critical",
+    "input": {
+      "question": "会員登録API v1とv2のエラー仕様を比較してください。"
+    },
+    "expected": {
+      "query_types": [
+        "compare"
+      ],
+      "routes": [
+        "compare"
+      ],
+      "tool_calls": [
+        "compare_documents"
+      ],
+      "forbidden_tool_calls": [
+        "hybrid_search",
+        "structured_query_tool"
+      ],
+      "tool_argument_schemas": {
+        "compare_documents": {
+          "type": "object",
+          "properties": {
+            "left": {
+              "type": "string",
+              "minLength": 1
+            },
+            "right": {
+              "type": "string",
+              "minLength": 1
+            },
+            "aspects": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 2
+            }
+          },
+          "required": [
+            "left",
+            "right",
+            "aspects"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "tool_argument_assertions": {
+        "compare_documents": [
+          {
+            "path": "arguments.left",
+            "operator": "equals",
+            "value": "signup_api_v1"
+          },
+          {
+            "path": "arguments.right",
+            "operator": "equals",
+            "value": "signup_api_v2"
+          },
+          {
+            "path": "arguments.aspects",
+            "operator": "contains",
+            "value": "duplicate_email"
+          }
+        ]
+      },
+      "citation_required": true,
+      "answer_assertions": [
+        "両資料の共通点と相違点を区別する"
+      ],
+      "answer_format": {
+        "required_sections": [
+          "概要",
+          "共通点",
+          "相違点",
+          "推奨"
+        ]
+      }
+    },
+    "budgets": {
+      "max_latency_ms": 1800,
+      "max_cost_usd": 0.02
+    },
+    "repeat": 1,
+    "tags": [
+      "synthetic",
+      "public",
+      "compare",
+      "four_sections",
+      "citation"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "agent-insufficient-future-roadmap",
+    "category": "insufficient_evidence",
+    "severity": "high",
+    "input": {
+      "question": "2028年に予定している認証機能のロードマップを教えてください。"
+    },
+    "expected": {
+      "query_types": [
+        "insufficient_evidence"
+      ],
+      "routes": [
+        "insufficient_evidence",
+        "retrieval"
+      ],
+      "tool_calls": [
+        "hybrid_search"
+      ],
+      "forbidden_tool_calls": [
+        "structured_query_tool",
+        "compare_documents"
+      ],
+      "tool_argument_schemas": {
+        "hybrid_search": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "minLength": 1
+            },
+            "top_k": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20
+            }
+          },
+          "required": [
+            "query",
+            "top_k"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "tool_argument_assertions": {
+        "hybrid_search": [
+          {
+            "path": "arguments.query",
+            "operator": "contains",
+            "value": "2028"
+          },
+          {
+            "path": "arguments.top_k",
+            "operator": "gte",
+            "value": 3
+          }
+        ]
+      },
+      "citation_required": false,
+      "answer_assertions": [
+        "資料にない事実を捏造しない",
+        "不足情報を明示する"
+      ],
+      "answer_format": {
+        "required_sections": [
+          "回答",
+          "不足情報"
+        ]
+      }
+    },
+    "budgets": {
+      "max_latency_ms": 1000,
+      "max_cost_usd": 0.02
+    },
+    "repeat": 1,
+    "tags": [
+      "synthetic",
+      "public",
+      "insufficient_evidence",
+      "no_hallucination"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "agent-insufficient-unpublished-pricing",
+    "category": "insufficient_evidence",
+    "severity": "high",
+    "input": {
+      "question": "未公開の次期料金プランを正確に教えてください。"
+    },
+    "expected": {
+      "query_types": [
+        "insufficient_evidence"
+      ],
+      "routes": [
+        "insufficient_evidence",
+        "retrieval"
+      ],
+      "tool_calls": [
+        "hybrid_search"
+      ],
+      "forbidden_tool_calls": [
+        "structured_query_tool",
+        "compare_documents"
+      ],
+      "tool_argument_schemas": {
+        "hybrid_search": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "minLength": 1
+            },
+            "top_k": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20
+            }
+          },
+          "required": [
+            "query",
+            "top_k"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "tool_argument_assertions": {
+        "hybrid_search": [
+          {
+            "path": "arguments.query",
+            "operator": "contains",
+            "value": "次期料金"
+          },
+          {
+            "path": "arguments.top_k",
+            "operator": "gte",
+            "value": 3
+          }
+        ]
+      },
+      "citation_required": false,
+      "answer_assertions": [
+        "資料にない事実を捏造しない",
+        "不足情報を明示する"
+      ],
+      "answer_format": {
+        "required_sections": [
+          "回答",
+          "不足情報"
+        ]
+      }
+    },
+    "budgets": {
+      "max_latency_ms": 1000,
+      "max_cost_usd": 0.02
+    },
+    "repeat": 1,
+    "tags": [
+      "synthetic",
+      "public",
+      "insufficient_evidence",
+      "no_hallucination"
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "id": "agent-fallback-search-timeout",
+    "category": "fallback",
+    "severity": "critical",
+    "input": {
+      "question": "検索がタイムアウトした場合でも、分かる範囲と制約を説明してください。"
+    },
+    "expected": {
+      "query_types": [
+        "fallback"
+      ],
+      "routes": [
+        "degraded",
+        "fallback"
+      ],
+      "tool_calls": [
+        "hybrid_search"
+      ],
+      "forbidden_tool_calls": [
+        "structured_query_tool",
+        "compare_documents"
+      ],
+      "tool_argument_schemas": {
+        "hybrid_search": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "minLength": 1
+            },
+            "top_k": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20
+            }
+          },
+          "required": [
+            "query",
+            "top_k"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "tool_argument_assertions": {
+        "hybrid_search": [
+          {
+            "path": "arguments.query",
+            "operator": "contains",
+            "value": "タイムアウト"
+          },
+          {
+            "path": "arguments.top_k",
+            "operator": "gte",
+            "value": 3
+          }
+        ]
+      },
+      "citation_required": false,
+      "answer_assertions": [
+        "検索失敗を明示する",
+        "取得できていない事実を断定しない"
+      ],
+      "answer_format": {
+        "required_sections": [
+          "回答",
+          "制約"
+        ]
+      }
+    },
+    "budgets": {
+      "max_latency_ms": 2200,
+      "max_cost_usd": 0.02
+    },
+    "repeat": 1,
+    "tags": [
+      "synthetic",
+      "public",
+      "fallback",
+      "degraded",
+      "execution_path"
+    ]
+  }
+]
+
