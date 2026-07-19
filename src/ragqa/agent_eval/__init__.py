@@ -1,6 +1,28 @@
 from ragqa.agent_eval.adapters.fixture import DuplicateFixtureTraceError, FixtureRunner
 from ragqa.agent_eval.adapters.subprocess import SubprocessAgentRunner
 from ragqa.agent_eval.adapters.trace_file import TraceFileRunner, load_saved_traces
+from ragqa.agent_eval.advanced import run_advanced_evaluation
+from ragqa.agent_eval.advanced_models import (
+    AdvancedEvaluationError,
+    AdvancedEvaluationResult,
+    ClaimJudgment,
+    CostEvaluationResult,
+    GroundednessEvaluationResult,
+    GroundednessJudgeResponse,
+    JudgeExecutionMetadata,
+    JudgeRequest,
+    ModelTokenPricing,
+    PricingConfig,
+    SemanticConsistencyJudgeResponse,
+    StabilityDimensionResult,
+    StabilityEvaluationResult,
+    ToolCallPricing,
+)
+from ragqa.agent_eval.advanced_report import (
+    build_advanced_report,
+    render_advanced_markdown,
+    write_advanced_reports,
+)
 from ragqa.agent_eval.aggregator import (
     aggregate_agent_evaluation,
     build_route_confusion_matrix,
@@ -27,6 +49,17 @@ from ragqa.agent_eval.gate import (
     load_baseline,
     load_gate_config,
     maybe_update_baseline,
+)
+from ragqa.agent_eval.groundedness import evaluate_groundedness
+from ragqa.agent_eval.judge import (
+    DeterministicMockJudgeTransport,
+    HttpJudgeTransport,
+    JudgeAdapter,
+    JudgeError,
+    JudgeMalformedResponseError,
+    JudgeTransport,
+    JudgeTransportError,
+    StructuredJudgeAdapter,
 )
 from ragqa.agent_eval.models import (
     AgentEvalBudgets,
@@ -66,6 +99,12 @@ from ragqa.agent_eval.runner import (
     load_cases,
 )
 from ragqa.agent_eval.report import build_report, render_markdown, write_reports
+from ragqa.agent_eval.cost import (
+    PricingConfigError,
+    estimate_cost,
+    load_pricing_config,
+)
+from ragqa.agent_eval.stability import evaluate_stability
 from ragqa.agent_eval.validation import (
     DatasetValidationError,
     validate_case_contracts,
@@ -74,6 +113,8 @@ from ragqa.agent_eval.validation import (
 )
 
 __all__ = [
+    "AdvancedEvaluationError",
+    "AdvancedEvaluationResult",
     "AgentEvalBudgets",
     "AgentEvalCase",
     "AgentEvalExpected",
@@ -91,9 +132,12 @@ __all__ = [
     "CITATION_INVALID",
     "CITATION_MISSING",
     "CaseEvaluationResult",
+    "ClaimJudgment",
     "CheckResult",
     "CitationTrace",
     "ControlTrace",
+    "CostEvaluationResult",
+    "DeterministicMockJudgeTransport",
     "DuplicateCaseIdError",
     "DuplicateFixtureTraceError",
     "DatasetValidationError",
@@ -101,8 +145,21 @@ __all__ = [
     "FixtureTraceMismatchError",
     "FixtureTraceNotFoundError",
     "GuardrailTrace",
+    "GroundednessEvaluationResult",
+    "GroundednessJudgeResponse",
+    "HttpJudgeTransport",
+    "JudgeAdapter",
+    "JudgeError",
+    "JudgeExecutionMetadata",
+    "JudgeMalformedResponseError",
+    "JudgeRequest",
+    "JudgeTransport",
+    "JudgeTransportError",
     "LATENCY_BUDGET_EXCEEDED",
     "MetricAggregate",
+    "ModelTokenPricing",
+    "PricingConfig",
+    "PricingConfigError",
     "REQUIRED_TOOL_NOT_CALLED",
     "ROUTE_MISMATCH",
     "RunnerCaseIdMismatchError",
@@ -111,13 +168,18 @@ __all__ = [
     "RunnerNonZeroExitError",
     "RunnerTimeoutError",
     "SchemaVersionMismatchError",
+    "SemanticConsistencyJudgeResponse",
     "SourceTrace",
+    "StabilityDimensionResult",
+    "StabilityEvaluationResult",
+    "StructuredJudgeAdapter",
     "SubprocessAgentRunner",
     "TASK_FAILED",
     "TimingTrace",
     "TraceFileNotFoundError",
     "TraceFileRunner",
     "ToolCallTrace",
+    "ToolCallPricing",
     "TOOL_ARGUMENT_SCHEMA_INVALID",
     "TOOL_ARGUMENT_SEMANTIC_MISMATCH",
     "UNEXPECTED_TOOL_CALLED",
@@ -125,22 +187,30 @@ __all__ = [
     "aggregate_metrics",
     "aggregate_agent_evaluation",
     "build_baseline",
+    "build_advanced_report",
     "build_report",
     "build_route_confusion_matrix",
     "evaluate_assertion",
+    "estimate_cost",
     "evaluate_case",
     "evaluate_cases",
     "evaluate_quality_gate",
+    "evaluate_groundedness",
+    "evaluate_stability",
     "load_baseline",
     "load_cases",
     "load_gate_config",
+    "load_pricing_config",
     "load_saved_traces",
     "maybe_update_baseline",
     "percentile",
     "render_markdown",
+    "render_advanced_markdown",
     "resolve_json_path",
+    "run_advanced_evaluation",
     "validate_case_contracts",
     "validate_dataset",
     "validate_trace_coverage",
     "write_reports",
+    "write_advanced_reports",
 ]

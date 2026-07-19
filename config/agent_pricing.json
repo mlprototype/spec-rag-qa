@@ -1,0 +1,30 @@
+{
+  "schema_version": "1.0",
+  "pricing_version": "phase6-synthetic-2026-07-20-v1",
+  "currency": "USD",
+  "token_unit": 1000000,
+  "models": {
+    "synthetic-fixture-agent": {
+      "input_usd_per_unit": 1.0,
+      "output_usd_per_unit": 2.0
+    },
+    "mock-agent": {
+      "input_usd_per_unit": 1.0,
+      "output_usd_per_unit": 2.0
+    }
+  },
+  "tools": {
+    "hybrid_search": {
+      "usd_per_call": 0.0
+    },
+    "structured_query_tool": {
+      "usd_per_call": 0.0
+    },
+    "compare_documents": {
+      "usd_per_call": 0.0
+    }
+  },
+  "metadata": {
+    "scope": "Synthetic Phase 6 monitoring fixtures; not production provider pricing"
+  }
+}

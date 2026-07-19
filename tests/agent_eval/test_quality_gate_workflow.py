@@ -45,3 +45,25 @@ def test_generated_artifacts_are_ignored_and_tracked_reports_are_examples() -> N
     assert (REPORTS_PATH / "example.md").is_file()
     assert not (REPORTS_PATH / "latest.json").exists()
     assert not (REPORTS_PATH / "latest.md").exists()
+
+
+def test_advanced_judge_is_dispatch_only_and_not_part_of_pr_gate() -> None:
+    workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
+    offline_job = workflow.split("  real-agent-evaluation:", maxsplit=1)[0]
+    advanced_job = workflow.split("  advanced-agent-monitoring:", maxsplit=1)[1]
+
+    assert "run_agent_advanced_evaluation.py" not in offline_job
+    assert "repository: mlprototype/ai-agent-rag" not in offline_job
+    assert "AGENT_EVAL_JUDGE_API_KEY" not in offline_job
+    assert "github.event_name == 'workflow_dispatch'" in advanced_job
+    assert "inputs.run_advanced_monitoring" in advanced_job
+    assert "--runner subprocess" in advanced_job
+    assert "--judge http" in advanced_job
+    assert "repository: mlprototype/ai-agent-rag" in advanced_job
+    assert "AGENT_EVAL_JUDGE_API_KEY" in advanced_job
+    assert "rm -rf .artifacts/agent-advanced" in advanced_job
+    assert "if: always()" in advanced_job
+    assert "include-hidden-files: true" in advanced_job
+    assert ".artifacts/agent-advanced/report.json" in advanced_job
+    assert ".artifacts/agent-advanced/report.md" in advanced_job
+    assert ".artifacts/agent-advanced/run.log" in advanced_job
