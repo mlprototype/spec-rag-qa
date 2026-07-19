@@ -929,6 +929,7 @@
         "両資料の共通点と相違点を区別する"
       ],
       "answer_format": {
+        "format_type": "natural_language",
         "required_sections": [
           "共通点",
           "相違点",
@@ -1024,6 +1025,7 @@
         "両資料の共通点と相違点を区別する"
       ],
       "answer_format": {
+        "format_type": "natural_language",
         "required_sections": [
           "共通点",
           "相違点",
@@ -1119,6 +1121,7 @@
         "両資料の共通点と相違点を区別する"
       ],
       "answer_format": {
+        "format_type": "natural_language",
         "required_sections": [
           "共通点",
           "相違点",
