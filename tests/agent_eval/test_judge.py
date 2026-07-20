@@ -42,6 +42,32 @@ def _empty_groundedness_response(schema_version: str = "1.0") -> dict[str, Any]:
     return {"schema_version": schema_version, "claims": []}
 
 
+def _structured_query_tool_with_rows(
+    rows: list[dict[str, Any]],
+) -> ToolCallTrace:
+    return ToolCallTrace(
+        name="structured_query_tool",
+        metadata={
+            "deterministic": True,
+            "evidence_kind": STRUCTURED_QUERY_EVIDENCE_KIND,
+        },
+        result={"success": True, "rows": rows},
+    )
+
+
+def _projected_tool_results(
+    synthetic_traces: list[AgentRunTrace],
+    tool_call: ToolCallTrace,
+) -> list[dict[str, Any]]:
+    trace = _trace_with_tool(synthetic_traces, tool_call)
+    transport = QueueJudgeTransport([_empty_groundedness_response()])
+    judge = StructuredJudgeAdapter(transport, judge_model="mock-model")
+
+    asyncio.run(judge.judge_groundedness(trace))
+
+    return transport.requests[0].input["tool_results"]
+
+
 def test_groundedness_judge_validates_schema_and_saves_metadata(
     synthetic_traces: list[AgentRunTrace],
 ) -> None:
@@ -259,6 +285,208 @@ def test_explicit_deterministic_structured_query_facts_are_minimally_projected(
             },
         }
     ]
+
+
+@pytest.mark.parametrize(
+    "excluded_key",
+    [
+        "answer_ok",
+        "answer-ok",
+        "answer ok",
+        "answerOk",
+        "AnswerOK",
+        "answerok",
+        "answerquality",
+        "answerScore",
+        "self_assessment",
+        "self-assessment",
+        "self assessment",
+        "selfAssessment",
+        "SelfAssessment",
+        "selfassessment",
+        "selfReview",
+        "selfreview",
+        "groundedness_score",
+        "groundedness-score",
+        "groundedness score",
+        "groundednessScore",
+        "groundednessscore",
+        "support_score",
+        "support-score",
+        "support score",
+        "supportScore",
+        "supportscore",
+        "critic",
+        "critique",
+        "confidence",
+        "judge",
+    ],
+)
+def test_self_evaluation_key_variants_are_removed_recursively(
+    synthetic_traces: list[AgentRunTrace],
+    excluded_key: str,
+) -> None:
+    tool_results = _projected_tool_results(
+        synthetic_traces,
+        _structured_query_tool_with_rows(
+            [{"businessResult": 3, "nested": {excluded_key: "remove"}}]
+        ),
+    )
+
+    assert tool_results[0]["result"]["rows"] == [
+        {"businessResult": 3}
+    ]
+
+
+@pytest.mark.parametrize(
+    "excluded_key",
+    [
+        "source_id",
+        "source-id",
+        "source id",
+        "sourceId",
+        "source_ids",
+        "source-ids",
+        "source ids",
+        "sourceIds",
+        "sourceid",
+        "sourceids",
+        "source_count",
+        "source-count",
+        "source count",
+        "sourceCount",
+        "sourcecount",
+        "citation_id",
+        "citation-id",
+        "citation id",
+        "citationId",
+        "citation_ids",
+        "citation-ids",
+        "citation ids",
+        "citationIds",
+        "citationid",
+        "citationids",
+        "document_id",
+        "document-id",
+        "document id",
+        "documentId",
+        "document_ids",
+        "document-ids",
+        "document ids",
+        "documentIds",
+        "documentid",
+        "documentids",
+    ],
+)
+def test_provenance_only_key_variants_are_removed_recursively(
+    synthetic_traces: list[AgentRunTrace],
+    excluded_key: str,
+) -> None:
+    tool_results = _projected_tool_results(
+        synthetic_traces,
+        _structured_query_tool_with_rows(
+            [{"orderCount": 3, "nested": {excluded_key: "remove"}}]
+        ),
+    )
+
+    assert tool_results[0]["result"]["rows"] == [{"orderCount": 3}]
+
+
+def test_nested_projection_keeps_business_facts_and_removes_reserved_keys(
+    synthetic_traces: list[AgentRunTrace],
+) -> None:
+    rows = [
+        {
+            "result": "complete",
+            "businessResult": {
+                "order_count": 4,
+                "orderCount": 4,
+                "answerOk": True,
+            },
+            "groups": [
+                {
+                    "salesTotal": 1200,
+                    "average": 300,
+                    "selfAssessment": "correct",
+                    "sourceIds": ["private-source"],
+                },
+                {
+                    "businessResult": "retained",
+                    "citationId": "private-citation",
+                    "documentId": "private-document",
+                },
+            ],
+        }
+    ]
+
+    tool_results = _projected_tool_results(
+        synthetic_traces,
+        _structured_query_tool_with_rows(rows),
+    )
+
+    assert tool_results[0]["result"]["rows"] == [
+        {
+            "result": "complete",
+            "businessResult": {"order_count": 4, "orderCount": 4},
+            "groups": [
+                {"salesTotal": 1200, "average": 300},
+                {"businessResult": "retained"},
+            ],
+        }
+    ]
+
+
+def test_tool_result_without_facts_after_projection_is_excluded(
+    synthetic_traces: list[AgentRunTrace],
+) -> None:
+    tool_results = _projected_tool_results(
+        synthetic_traces,
+        _structured_query_tool_with_rows(
+            [
+                {
+                    "answerOk": True,
+                    "selfAssessment": "correct",
+                    "groundednessScore": 1.0,
+                    "sourceIds": ["source-1"],
+                    "citationId": "citation-1",
+                    "documentId": "document-1",
+                }
+            ]
+        ),
+    )
+
+    assert tool_results == []
+
+
+def test_factless_projected_tool_id_is_a_malformed_judge_response(
+    synthetic_traces: list[AgentRunTrace],
+) -> None:
+    trace = _trace_with_tool(
+        synthetic_traces,
+        _structured_query_tool_with_rows(
+            [{"answerOk": True, "sourceIds": ["source-1"]}]
+        ),
+    )
+    response = {
+        "schema_version": "1.0",
+        "claims": [
+            {
+                "claim": "Excluded projected Tool evidence.",
+                "evaluable": True,
+                "supported": True,
+                "source_ids": [],
+                "tool_result_ids": ["tool:0:structured_query_tool"],
+                "reason": "This Tool result was removed by projection.",
+            }
+        ],
+    }
+    transport = QueueJudgeTransport([response, response])
+    judge = StructuredJudgeAdapter(transport, judge_model="mock-model")
+
+    with pytest.raises(JudgeMalformedResponseError, match="unknown evidence"):
+        asyncio.run(judge.judge_groundedness(trace))
+
+    assert len(transport.requests) == 2
 
 
 def test_excluded_tool_result_id_is_a_malformed_judge_response(

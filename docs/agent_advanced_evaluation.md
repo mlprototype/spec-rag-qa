@@ -12,13 +12,15 @@ Judge endpointとmodelは自由入力ではありません。Environmentまた�
 - `AGENT_EVAL_JUDGE_MODEL`: 監査可能なJudge model ID
 - `AGENT_EVAL_JUDGE_ALLOWED_HOST`: endpointに許可する単一の完全一致hostname
 
-Judge credentialは `secrets.AGENT_EVAL_JUDGE_API_KEY` だけから取得します。API keyがある場合はHTTPS以外を拒否し、endpoint hostnameが許可hostと完全一致しなければ送信前に停止します。HTTP redirectも拒否するため、許可hostを経由した別hostへの転送は行いません。URL、Bearer token、Source内容はerror messageやreportへ含めません。
+Judge credentialは `secrets.AGENT_EVAL_JUDGE_API_KEY` だけから取得します。API keyがある場合はHTTPS以外を拒否し、endpoint hostnameが許可hostと完全一致しなければ送信前に停止します。HTTP redirectも拒否するため、許可hostを経由した別hostへの転送は行いません。Transport／validation例外と実行ログには、endpoint URL、Bearer token、Source snippet、Judge response本文を含めません。
 
 ## Judge Adapterと出力schema
 
 `StructuredJudgeAdapter` はAgent Runnerと独立した `JudgeTransport` を利用します。標準の外部接続はprovider-neutralな `HttpJudgeTransport`、オフライン試験は `DeterministicMockJudgeTransport` です。Mock Judgeは配線、schema、集計の確認専用であり、そのscoreを品質判断に利用してはいけません。
 
 外部Judgeには、評価に必要な質問、Agent回答、SourceのID・title・URI・snippet、および許可されたTool resultのprojectionが送信されます。したがって、合成データ以外、または機密情報を含み得る評価データを送る場合は、送信先、データ取扱条件、保持期間を確認し、`agent-evaluation` Environmentで承認してから実行してください。
+
+validation済みのJudge出力に含まれる `claim` と `reason` はJSON reportへ保存され、CI artifactになり得ます。Markdown reportにもclaimが含まれます。これらはJudgeが評価データから生成した内容であるため、Repository／Environment側でartifactの閲覧権限と保持期間を管理してください。
 
 Groundedness Judgeは次の構造を返します。
 
@@ -53,7 +55,7 @@ Tool resultはdefault denyです。次の条件をすべて満たす場合だけ
 5. resultに実値を持つ `value`、`aggregate`、`count`、`rows`、`records`、`metrics`など、claimを支持できる許可フィールドがある。
 6. projection後のEvidenceが行数、field数、文字列長、payload sizeの上限内である。
 
-Judgeへ送るargumentsは `operation`、`target_metric`、`filters`、`target_dataset`だけです。resultも許可された条件とfact fieldだけへprojectionします。`critic`、`judge`、`confidence`、`answer_ok`、`self_assessment`と同義のネストキー、および `source_ids`、`source_count`などprovenanceだけの値は再帰的に除外します。
+Judgeへ送るargumentsは `operation`、`target_metric`、`filters`、`target_dataset`だけです。resultも許可された条件とfact fieldだけへprojectionします。`critic`、`judge`、`confidence`、`answer_ok`、`self_assessment`と同義のネストキー、および `source_ids`、`source_count`などprovenanceだけの値は再帰的に除外します。キーはcamelCase／PascalCaseを単語分割し、snake_case、kebab-case、space-separated、underscoreなしのcompact形式を同一視して判定します。一方、許可された業務factの元キー名（例: `businessResult`、`orderCount`）はprojection内で維持します。
 
 `hybrid_search`と`compare_documents`のresultは、明示フラグがあってもTool Evidenceとして使用しません。これらは空でない `SourceTrace.snippet`をEvidence正本とし、snippetを持たないSource ID／titleだけのTraceはGroundedness Evidenceへ送りません。未知Tool、deterministic未設定、source ID／source count／row countしか持たないStructured Queryも除外します。除外されたTool result IDをJudgeが返した場合はunknown evidenceを参照したmalformed responseとして扱い、最大1回のretry後に明示的なJudge errorにします。
 

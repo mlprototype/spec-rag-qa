@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import math
+import re
 from collections.abc import Callable, Collection, Mapping, Sequence
 from datetime import datetime, timezone
 from typing import Any, Protocol, TypeVar, runtime_checkable
@@ -65,6 +66,35 @@ _PROVENANCE_ONLY_KEYS = {
     "source_id",
     "source_ids",
 }
+_PROVENANCE_ONLY_COMPACT_KEYS = {
+    key.replace("_", "") for key in _PROVENANCE_ONLY_KEYS
+}
+_SELF_EVALUATION_KEYS = {
+    "answer_correct",
+    "answer_evaluation",
+    "answer_ok",
+    "answer_quality",
+    "answer_score",
+    "answer_verdict",
+    "confidence",
+    "critic",
+    "critique",
+    "groundedness_score",
+    "judge",
+    "self_assessment",
+    "self_eval",
+    "self_evaluation",
+    "self_review",
+    "self_score",
+    "support_score",
+}
+_SELF_EVALUATION_COMPACT_KEYS = {
+    key.replace("_", "") for key in _SELF_EVALUATION_KEYS
+}
+_CAMEL_ACRONYM_BOUNDARY = re.compile(r"([A-Z]+)([A-Z][a-z])")
+_CAMEL_WORD_BOUNDARY = re.compile(r"([a-z0-9])([A-Z])")
+_EVIDENCE_KEY_SEPARATOR = re.compile(r"[-\s]+")
+_REPEATED_UNDERSCORE = re.compile(r"_+")
 _MAX_EVIDENCE_ROWS = 20
 _MAX_EVIDENCE_FIELDS = 20
 _MAX_EVIDENCE_DEPTH = 4
@@ -494,7 +524,7 @@ def _project_fact_value(value: Any, *, depth: int = 0) -> Any | None:
             normalized_key = _normalize_evidence_key(key)
             if (
                 _is_self_evaluation_key(normalized_key)
-                or normalized_key in _PROVENANCE_ONLY_KEYS
+                or _is_provenance_only_key(normalized_key)
             ):
                 continue
             projected_item = _project_fact_value(item, depth=depth + 1)
@@ -534,10 +564,32 @@ def _has_factual_content(value: Any) -> bool:
 
 
 def _normalize_evidence_key(value: Any) -> str:
-    return str(value).strip().lower().replace("-", "_").replace(" ", "_")
+    text = str(value).strip()
+    text = _CAMEL_ACRONYM_BOUNDARY.sub(r"\1_\2", text)
+    text = _CAMEL_WORD_BOUNDARY.sub(r"\1_\2", text)
+    text = _EVIDENCE_KEY_SEPARATOR.sub("_", text)
+    return _REPEATED_UNDERSCORE.sub("_", text).strip("_").lower()
+
+
+def _compact_evidence_key(normalized_key: str) -> str:
+    return normalized_key.replace("_", "")
+
+
+def _is_provenance_only_key(normalized_key: str) -> bool:
+    return (
+        normalized_key in _PROVENANCE_ONLY_KEYS
+        or _compact_evidence_key(normalized_key)
+        in _PROVENANCE_ONLY_COMPACT_KEYS
+    )
 
 
 def _is_self_evaluation_key(normalized_key: str) -> bool:
+    compact_key = _compact_evidence_key(normalized_key)
+    if (
+        normalized_key in _SELF_EVALUATION_KEYS
+        or compact_key in _SELF_EVALUATION_COMPACT_KEYS
+    ):
+        return True
     parts = set(normalized_key.split("_"))
     if parts.intersection({"confidence", "critic", "critique", "judge"}):
         return True
@@ -549,12 +601,7 @@ def _is_self_evaluation_key(normalized_key: str) -> bool:
         {"assessment", "eval", "evaluation", "review", "score"}
     ):
         return True
-    return normalized_key in {
-        "answer_ok",
-        "groundedness_score",
-        "self_assessment",
-        "support_score",
-    }
+    return False
 
 
 def _safe_validation_detail(exc: Exception) -> str:
