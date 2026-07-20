@@ -21,13 +21,15 @@ def test_external_judge_contract_when_explicitly_enabled() -> None:
         pytest.skip("External Judge test is opt-in")
     judge_url = os.environ.get("AGENT_EVAL_JUDGE_URL")
     judge_model = os.environ.get("AGENT_EVAL_JUDGE_MODEL")
-    if not judge_url or not judge_model:
-        pytest.fail("External Judge URL and model must be configured")
+    judge_allowed_host = os.environ.get("AGENT_EVAL_JUDGE_ALLOWED_HOST")
+    if not judge_url or not judge_model or not judge_allowed_host:
+        pytest.fail("External Judge URL, model, and allowed host must be configured")
     trace = next(item for item in load_saved_traces(TRACES_PATH) if item.sources)
     judge = StructuredJudgeAdapter(
         HttpJudgeTransport(
             judge_url,
             api_key=os.environ.get("AGENT_EVAL_JUDGE_API_KEY"),
+            allowed_hosts={judge_allowed_host},
         ),
         judge_model=judge_model,
     )

@@ -22,14 +22,6 @@ on:
         required: false
         default: false
         type: boolean
-      judge_url:
-        description: HTTP endpoint implementing the independent Judge contract
-        required: false
-        type: string
-      judge_model:
-        description: Auditable model identifier used by the Judge endpoint
-        required: false
-        type: string
 
 permissions:
   contents: read
@@ -159,6 +151,7 @@ jobs:
     name: Advanced Agent Monitoring
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_advanced_monitoring }}
     runs-on: ubuntu-latest
+    environment: agent-evaluation
 
     steps:
       - name: Check out spec-rag-qa
@@ -195,8 +188,9 @@ jobs:
         if: always()
         env:
           AGENT_EVAL_JUDGE_API_KEY: ${{ secrets.AGENT_EVAL_JUDGE_API_KEY }}
-          ADVANCED_JUDGE_MODEL: ${{ inputs.judge_model }}
-          ADVANCED_JUDGE_URL: ${{ inputs.judge_url }}
+          ADVANCED_JUDGE_ALLOWED_HOST: ${{ vars.AGENT_EVAL_JUDGE_ALLOWED_HOST }}
+          ADVANCED_JUDGE_MODEL: ${{ vars.AGENT_EVAL_JUDGE_MODEL }}
+          ADVANCED_JUDGE_URL: ${{ vars.AGENT_EVAL_JUDGE_URL }}
           LANGCHAIN_TRACING_V2: "false"
           LANGSMITH_TRACING: "false"
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -212,6 +206,7 @@ jobs:
             --judge http \
             --judge-url "$ADVANCED_JUDGE_URL" \
             --judge-model "$ADVANCED_JUDGE_MODEL" \
+            --judge-allowed-host "$ADVANCED_JUDGE_ALLOWED_HOST" \
             --report-json .artifacts/agent-advanced/report.json \
             --report-markdown .artifacts/agent-advanced/report.md \
             2>&1 | tee .artifacts/agent-advanced/run.log

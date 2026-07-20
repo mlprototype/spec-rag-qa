@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import asyncio
 import json
-from collections.abc import Callable, Mapping, Sequence
+import math
+from collections.abc import Callable, Collection, Mapping, Sequence
 from datetime import datetime, timezone
 from typing import Any, Protocol, TypeVar, runtime_checkable
 from urllib import error as urllib_error
+from urllib import parse as urllib_parse
 from urllib import request as urllib_request
 
 from pydantic import BaseModel, ValidationError
@@ -21,17 +23,63 @@ from ragqa.agent_eval.advanced_models import (
 from ragqa.agent_eval.models import AgentRunTrace, ToolCallTrace
 
 
-GROUNDING_PROMPT_VERSION = "groundedness.claim-support.v1"
+GROUNDING_PROMPT_VERSION = "groundedness.claim-support.v2"
 SEMANTIC_STABILITY_PROMPT_VERSION = "stability.semantic-groups.v1"
+
+STRUCTURED_QUERY_EVIDENCE_KIND = "structured_query_result"
+_ALLOWED_GROUNDEDNESS_TOOL = "structured_query_tool"
+_STRUCTURED_QUERY_ARGUMENT_FIELDS = (
+    "operation",
+    "target_metric",
+    "filters",
+    "target_dataset",
+)
+_STRUCTURED_QUERY_RESULT_CONTEXT_FIELDS = (
+    "operation",
+    "target_metric",
+    "filters",
+    "target_dataset",
+    "row_count",
+)
+_STRUCTURED_QUERY_FACT_FIELDS = (
+    "value",
+    "values",
+    "result_value",
+    "aggregate",
+    "aggregates",
+    "count",
+    "total",
+    "average",
+    "minimum",
+    "maximum",
+    "rows",
+    "records",
+    "metrics",
+)
+_PROVENANCE_ONLY_KEYS = {
+    "citation_id",
+    "citation_ids",
+    "document_id",
+    "document_ids",
+    "source_count",
+    "source_id",
+    "source_ids",
+}
+_MAX_EVIDENCE_ROWS = 20
+_MAX_EVIDENCE_FIELDS = 20
+_MAX_EVIDENCE_DEPTH = 4
+_MAX_EVIDENCE_STRING_LENGTH = 1_000
+_MAX_PROJECTED_EVIDENCE_BYTES = 16_384
 
 GROUNDING_PROMPT = """You are an independent factual-grounding evaluator.
 Split the answer into independently verifiable claims. Judge each evaluable claim only
-against the supplied sources and successful deterministic Tool results. Never use the
-Agent's confidence, critic, answer_ok, or self-assessment as evidence. Return JSON with
-schema_version and claims. Each claim contains claim, evaluable, supported, source_ids,
-tool_result_ids, and reason. Use supported=null only when evaluable=false. A supported
-claim must cite at least one supplied source_id or tool_result_id. Return claims=[] when
-the answer contains no evaluable or non-evaluable claim."""
+against the supplied sources and the projected factual values in eligible deterministic
+Tool results. Tool names, arguments, source IDs, and row/source counts alone are not
+claim support. Never use the Agent's confidence, critic, answer_ok, self-assessment, or
+similar self-evaluation as evidence. Return JSON with schema_version and claims. Each
+claim contains claim, evaluable, supported, source_ids, tool_result_ids, and reason. Use
+supported=null only when evaluable=false. A supported claim must cite at least one
+supplied source_id or tool_result_id. Return claims=[] when the answer has no claim."""
 
 SEMANTIC_STABILITY_PROMPT = """You are an independent semantic-consistency evaluator.
 Group answers that express the same material conclusion even when wording, ordering, or
@@ -124,16 +172,12 @@ class StructuredJudgeAdapter:
                 "snippet": source.snippet,
             }
             for source in trace.sources
+            if source.snippet is not None and source.snippet.strip()
         ]
         tool_results = [
-            {
-                "tool_result_id": _tool_result_id(index, call.name),
-                "tool_name": call.name,
-                "arguments": _sanitize_evidence(call.arguments),
-                "result": _sanitize_evidence(call.result),
-            }
+            projected
             for index, call in enumerate(trace.tool_calls)
-            if _is_deterministic_tool_result(call)
+            if (projected := _project_tool_evidence(index, call)) is not None
         ]
         request = JudgeRequest(
             schema_version=trace.schema_version,
@@ -230,7 +274,7 @@ class StructuredJudgeAdapter:
                 ValidationError,
                 ValueError,
             ) as exc:
-                last_detail = str(exc)
+                last_detail = _safe_validation_detail(exc)
                 continue
             return response, JudgeExecutionMetadata(
                 schema_version=request.schema_version,
@@ -250,15 +294,37 @@ class HttpJudgeTransport:
         url: str,
         *,
         api_key: str | None = None,
+        allowed_hosts: Collection[str],
         timeout_seconds: float = 60.0,
     ) -> None:
-        if not url.startswith(("https://", "http://")):
-            raise ValueError("Judge URL must use http or https")
+        endpoint = _parse_judge_endpoint(url)
+        if api_key and endpoint.scheme != "https":
+            raise ValueError(
+                "Judge endpoint must use HTTPS when an API key is configured"
+            )
+        allowed_host_values = (
+            (allowed_hosts,)
+            if isinstance(allowed_hosts, str)
+            else allowed_hosts
+        )
+        normalized_hosts = frozenset(
+            _normalize_allowed_host(host)
+            for host in allowed_host_values
+            if host.strip()
+        )
+        if not normalized_hosts:
+            raise ValueError("Judge endpoint host allowlist must not be empty")
+        endpoint_host = _normalize_allowed_host(endpoint.hostname or "")
+        if endpoint_host not in normalized_hosts:
+            raise ValueError(
+                "Judge endpoint host is not in the configured allowlist"
+            )
         if timeout_seconds <= 0:
             raise ValueError("Judge timeout must be greater than zero")
         self.url = url
         self.api_key = api_key
         self.timeout_seconds = timeout_seconds
+        self._opener = urllib_request.build_opener(_RejectRedirectHandler())
 
     async def complete(self, request: JudgeRequest) -> str:
         return await asyncio.to_thread(self._complete_sync, request)
@@ -268,23 +334,31 @@ class HttpJudgeTransport:
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
         body = request.model_dump_json().encode("utf-8")
-        provider_request = urllib_request.Request(
-            self.url,
-            data=body,
-            headers=headers,
-            method="POST",
-        )
         try:
-            with urllib_request.urlopen(
-                provider_request, timeout=self.timeout_seconds
+            provider_request = urllib_request.Request(
+                self.url,
+                data=body,
+                headers=headers,
+                method="POST",
+            )
+            with self._opener.open(
+                provider_request,
+                timeout=self.timeout_seconds,
             ) as response:
                 return response.read().decode("utf-8")
+        except JudgeTransportError:
+            raise
         except urllib_error.HTTPError as exc:
             raise JudgeTransportError(
                 f"Judge HTTP request failed with status {exc.code}"
-            ) from exc
-        except (urllib_error.URLError, UnicodeDecodeError, TimeoutError) as exc:
-            raise JudgeTransportError("Judge HTTP request failed") from exc
+            ) from None
+        except (
+            urllib_error.URLError,
+            UnicodeDecodeError,
+            TimeoutError,
+            ValueError,
+        ):
+            raise JudgeTransportError("Judge HTTP request failed") from None
 
 
 class DeterministicMockJudgeTransport:
@@ -336,31 +410,196 @@ def _tool_result_id(index: int, tool_name: str) -> str:
     return f"tool:{index}:{tool_name}"
 
 
-def _is_deterministic_tool_result(call: ToolCallTrace) -> bool:
+def _project_tool_evidence(
+    index: int,
+    call: ToolCallTrace,
+) -> dict[str, Any] | None:
+    """Project explicitly approved Tool facts; every other Tool is denied."""
+
     if call.error is not None or call.result is None:
-        return False
-    if call.metadata.get("deterministic") is False:
-        return False
-    normalized_name = call.name.lower().replace("-", "_")
-    self_evaluation_markers = (
-        "critic",
-        "judge",
-        "answer_check",
-        "answer_ok",
-        "self_eval",
-        "confidence",
+        return None
+    if call.metadata.get("deterministic") is not True:
+        return None
+    if call.name != _ALLOWED_GROUNDEDNESS_TOOL:
+        return None
+    if call.metadata.get("evidence_kind") != STRUCTURED_QUERY_EVIDENCE_KIND:
+        return None
+    if not isinstance(call.result, Mapping):
+        return None
+    if call.result.get("success") is not True:
+        return None
+
+    projected_facts: dict[str, Any] = {}
+    for field in _STRUCTURED_QUERY_FACT_FIELDS:
+        if field not in call.result:
+            continue
+        value = _project_fact_value(call.result[field])
+        if _has_factual_content(value):
+            projected_facts[field] = value
+    if not projected_facts:
+        return None
+
+    projected_arguments = _project_selected_fields(
+        call.arguments,
+        _STRUCTURED_QUERY_ARGUMENT_FIELDS,
     )
-    return not any(marker in normalized_name for marker in self_evaluation_markers)
+    projected_result = {
+        "success": True,
+        **_project_selected_fields(
+            call.result,
+            _STRUCTURED_QUERY_RESULT_CONTEXT_FIELDS,
+        ),
+        **projected_facts,
+    }
+    projected = {
+        "tool_result_id": _tool_result_id(index, call.name),
+        "tool_name": call.name,
+        "evidence_kind": STRUCTURED_QUERY_EVIDENCE_KIND,
+        "arguments": projected_arguments,
+        "result": projected_result,
+    }
+    try:
+        encoded = json.dumps(
+            projected,
+            ensure_ascii=False,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    except (TypeError, ValueError):
+        return None
+    return projected if len(encoded) <= _MAX_PROJECTED_EVIDENCE_BYTES else None
 
 
-def _sanitize_evidence(value: Any) -> Any:
-    forbidden_keys = {"answer_ok", "critic", "confidence", "self_assessment"}
+def _project_selected_fields(
+    value: Mapping[str, Any],
+    fields: Sequence[str],
+) -> dict[str, Any]:
+    projected: dict[str, Any] = {}
+    for field in fields:
+        if field not in value:
+            continue
+        item = _project_fact_value(value[field])
+        if _has_factual_content(item):
+            projected[field] = item
+    return projected
+
+
+def _project_fact_value(value: Any, *, depth: int = 0) -> Any | None:
+    if depth > _MAX_EVIDENCE_DEPTH:
+        return None
     if isinstance(value, Mapping):
-        return {
-            str(key): _sanitize_evidence(item)
-            for key, item in value.items()
-            if str(key).lower() not in forbidden_keys
-        }
-    if isinstance(value, list):
-        return [_sanitize_evidence(item) for item in value]
-    return value
+        if len(value) > _MAX_EVIDENCE_FIELDS:
+            return None
+        projected = {}
+        for key, item in value.items():
+            normalized_key = _normalize_evidence_key(key)
+            if (
+                _is_self_evaluation_key(normalized_key)
+                or normalized_key in _PROVENANCE_ONLY_KEYS
+            ):
+                continue
+            projected_item = _project_fact_value(item, depth=depth + 1)
+            if _has_factual_content(projected_item):
+                projected[str(key)] = projected_item
+        return projected or None
+    if isinstance(value, (list, tuple)):
+        if len(value) > _MAX_EVIDENCE_ROWS:
+            return None
+        projected_items = [
+            projected
+            for item in value
+            if (projected := _project_fact_value(item, depth=depth + 1))
+            is not None
+        ]
+        return projected_items or None
+    if isinstance(value, str):
+        stripped = value.strip()
+        if not stripped or len(stripped) > _MAX_EVIDENCE_STRING_LENGTH:
+            return None
+        return stripped
+    if value is None:
+        return None
+    if isinstance(value, float) and not math.isfinite(value):
+        return None
+    if isinstance(value, (bool, int, float)):
+        return value
+    return None
+
+
+def _has_factual_content(value: Any) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, (Mapping, list, tuple, str)):
+        return bool(value)
+    return isinstance(value, (bool, int, float))
+
+
+def _normalize_evidence_key(value: Any) -> str:
+    return str(value).strip().lower().replace("-", "_").replace(" ", "_")
+
+
+def _is_self_evaluation_key(normalized_key: str) -> bool:
+    parts = set(normalized_key.split("_"))
+    if parts.intersection({"confidence", "critic", "critique", "judge"}):
+        return True
+    if "answer" in parts and parts.intersection(
+        {"correct", "evaluation", "ok", "quality", "score", "verdict"}
+    ):
+        return True
+    if "self" in parts and parts.intersection(
+        {"assessment", "eval", "evaluation", "review", "score"}
+    ):
+        return True
+    return normalized_key in {
+        "answer_ok",
+        "groundedness_score",
+        "self_assessment",
+        "support_score",
+    }
+
+
+def _safe_validation_detail(exc: Exception) -> str:
+    if isinstance(exc, json.JSONDecodeError):
+        return "response was not valid JSON"
+    if isinstance(exc, ValidationError):
+        return "response did not match the required schema"
+    if isinstance(exc, TypeError):
+        return "response was not a JSON object"
+    message = str(exc)
+    safe_messages = {
+        "A supported claim must reference supplied evidence",
+        "Judge claim references unknown evidence",
+        "Judge must return one group_id per answer",
+        "Judge schema_version does not match the request",
+        "Judge schema_version does not match the trace",
+    }
+    return (
+        message
+        if message in safe_messages
+        else "response failed semantic validation"
+    )
+
+
+def _parse_judge_endpoint(url: str) -> urllib_parse.SplitResult:
+    try:
+        endpoint = urllib_parse.urlsplit(url)
+        _ = endpoint.port
+    except ValueError:
+        raise ValueError("Judge endpoint URL is invalid") from None
+    if endpoint.scheme not in {"http", "https"} or not endpoint.hostname:
+        raise ValueError("Judge endpoint URL is invalid")
+    if endpoint.username is not None or endpoint.password is not None:
+        raise ValueError("Judge endpoint URL must not contain user information")
+    return endpoint
+
+
+def _normalize_allowed_host(host: str) -> str:
+    normalized = host.strip().lower().rstrip(".")
+    invalid_markers = ("/", "@", "?", "#", "*")
+    if not normalized or any(marker in normalized for marker in invalid_markers):
+        raise ValueError("Judge allowed host entry is invalid")
+    return normalized
+
+
+class _RejectRedirectHandler(urllib_request.HTTPRedirectHandler):
+    def redirect_request(self, *args: Any, **kwargs: Any) -> None:
+        raise JudgeTransportError("Judge HTTP redirects are not allowed") from None

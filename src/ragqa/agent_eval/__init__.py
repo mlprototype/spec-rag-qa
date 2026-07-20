@@ -59,6 +59,7 @@ from ragqa.agent_eval.judge import (
     JudgeMalformedResponseError,
     JudgeTransport,
     JudgeTransportError,
+    STRUCTURED_QUERY_EVIDENCE_KIND,
     StructuredJudgeAdapter,
 )
 from ragqa.agent_eval.models import (
@@ -170,6 +171,7 @@ __all__ = [
     "SchemaVersionMismatchError",
     "SemanticConsistencyJudgeResponse",
     "SourceTrace",
+    "STRUCTURED_QUERY_EVIDENCE_KIND",
     "StabilityDimensionResult",
     "StabilityEvaluationResult",
     "StructuredJudgeAdapter",

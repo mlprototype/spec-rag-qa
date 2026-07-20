@@ -49,18 +49,35 @@ def test_generated_artifacts_are_ignored_and_tracked_reports_are_examples() -> N
 
 def test_advanced_judge_is_dispatch_only_and_not_part_of_pr_gate() -> None:
     workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
+    dispatch_config = workflow.split("permissions:", maxsplit=1)[0]
     offline_job = workflow.split("  real-agent-evaluation:", maxsplit=1)[0]
     advanced_job = workflow.split("  advanced-agent-monitoring:", maxsplit=1)[1]
 
+    assert "judge_url:" not in dispatch_config
+    assert "judge_model:" not in dispatch_config
+    assert "inputs.judge_url" not in workflow
+    assert "inputs.judge_model" not in workflow
     assert "run_agent_advanced_evaluation.py" not in offline_job
     assert "repository: mlprototype/ai-agent-rag" not in offline_job
     assert "AGENT_EVAL_JUDGE_API_KEY" not in offline_job
     assert "github.event_name == 'workflow_dispatch'" in advanced_job
     assert "inputs.run_advanced_monitoring" in advanced_job
+    assert "environment: agent-evaluation" in advanced_job
     assert "--runner subprocess" in advanced_job
     assert "--judge http" in advanced_job
+    assert "--judge-allowed-host \"$ADVANCED_JUDGE_ALLOWED_HOST\"" in advanced_job
     assert "repository: mlprototype/ai-agent-rag" in advanced_job
-    assert "AGENT_EVAL_JUDGE_API_KEY" in advanced_job
+    assert "ADVANCED_JUDGE_URL: ${{ vars.AGENT_EVAL_JUDGE_URL }}" in advanced_job
+    assert "ADVANCED_JUDGE_MODEL: ${{ vars.AGENT_EVAL_JUDGE_MODEL }}" in advanced_job
+    assert (
+        "ADVANCED_JUDGE_ALLOWED_HOST: "
+        "${{ vars.AGENT_EVAL_JUDGE_ALLOWED_HOST }}"
+    ) in advanced_job
+    assert (
+        "AGENT_EVAL_JUDGE_API_KEY: ${{ secrets.AGENT_EVAL_JUDGE_API_KEY }}"
+        in advanced_job
+    )
+    assert workflow.count("secrets.AGENT_EVAL_JUDGE_API_KEY") == 1
     assert "rm -rf .artifacts/agent-advanced" in advanced_job
     assert "if: always()" in advanced_job
     assert "include-hidden-files: true" in advanced_job

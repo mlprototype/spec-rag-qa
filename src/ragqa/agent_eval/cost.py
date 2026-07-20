@@ -44,7 +44,7 @@ def estimate_cost(
 ) -> CostEvaluationResult:
     """Estimate model and Tool cost while preserving unavailable usage as N/A."""
 
-    model = _resolve_model(trace)
+    model, model_source = _resolve_model(trace)
     usage = trace.usage
     observed_cost = usage.cost_usd if usage is not None else None
     input_tokens = usage.input_tokens if usage is not None else None
@@ -56,6 +56,7 @@ def estimate_cost(
         "run_index": run_index,
         "model": model,
         "pricing_version": pricing.pricing_version,
+        "metadata": {"model_source": model_source},
         "input_tokens": input_tokens,
         "output_tokens": output_tokens,
         "observed_cost_usd": observed_cost,
@@ -72,7 +73,9 @@ def estimate_cost(
             status="usage_unavailable",
         )
 
-    model_pricing = pricing.models.get(model)
+    model_pricing = (
+        pricing.models.get(model) if model_source != "unreported" else None
+    )
     if model_pricing is None:
         return CostEvaluationResult(
             **common,
@@ -120,16 +123,19 @@ def estimate_cost(
     )
 
 
-def _resolve_model(trace: AgentRunTrace) -> str:
-    candidates = []
+def _resolve_model(trace: AgentRunTrace) -> tuple[str, str]:
+    """Resolve only an observed model ID; an Agent target is not a model."""
+
+    candidates: list[tuple[object, str]] = []
     if trace.usage is not None:
-        candidates.append(trace.usage.metadata.get("model"))
-    candidates.append(trace.metadata.get("model"))
-    candidates.append(trace.target)
-    for candidate in candidates:
+        candidates.append(
+            (trace.usage.metadata.get("model"), "usage_metadata")
+        )
+    candidates.append((trace.metadata.get("model"), "trace_metadata"))
+    for candidate, source in candidates:
         if isinstance(candidate, str) and candidate.strip():
-            return candidate.strip()
-    return trace.target
+            return candidate.strip(), source
+    return "unreported", "unreported"
 
 
 def _round_cost(value: float) -> float:

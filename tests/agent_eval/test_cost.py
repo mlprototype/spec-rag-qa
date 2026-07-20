@@ -27,13 +27,15 @@ def test_cost_uses_versioned_model_and_tool_prices(
     synthetic_traces: list[AgentRunTrace],
 ) -> None:
     trace = next(item for item in synthetic_traces if item.tool_calls)
+    model = str(trace.metadata["model"])
+    assert model != trace.target
     pricing = PricingConfig(
         schema_version="1.0",
         pricing_version="test-v1",
         currency="USD",
         token_unit=1000,
         models={
-            trace.target: ModelTokenPricing(
+            model: ModelTokenPricing(
                 input_usd_per_unit=1.0,
                 output_usd_per_unit=2.0,
             )
@@ -104,6 +106,27 @@ def test_unknown_model_cost_is_na(
     assert result.estimated_total_cost_usd is None
 
 
+def test_real_agent_target_is_not_used_as_a_model_identifier(
+    synthetic_traces: list[AgentRunTrace],
+) -> None:
+    trace = synthetic_traces[0].model_copy(deep=True)
+    trace.target = "ai-agent-rag"
+    trace.metadata.pop("model", None)
+    trace.usage.metadata = {"origin": "langchain_callbacks"}
+    pricing = load_pricing_config(PRICING_PATH).model_copy(deep=True)
+    pricing.models["ai-agent-rag"] = ModelTokenPricing(
+        input_usd_per_unit=1.0,
+        output_usd_per_unit=2.0,
+    )
+
+    result = estimate_cost(trace, pricing)
+
+    assert result.model == "unreported"
+    assert result.metadata["model_source"] == "unreported"
+    assert result.status == "model_not_priced"
+    assert result.estimated_total_cost_usd is None
+
+
 def test_unpriced_tool_keeps_total_cost_na(
     synthetic_traces: list[AgentRunTrace],
 ) -> None:
@@ -125,7 +148,7 @@ def test_pricing_config_is_versioned_and_strict() -> None:
     pricing = load_pricing_config(PRICING_PATH)
 
     assert pricing.schema_version == "1.0"
-    assert pricing.pricing_version == "phase6-synthetic-2026-07-20-v1"
+    assert pricing.pricing_version == "phase6-synthetic-2026-07-20-v2"
 
 
 def test_invalid_pricing_config_raises_clear_error(tmp_path: Path) -> None:

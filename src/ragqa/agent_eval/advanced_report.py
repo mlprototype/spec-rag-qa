@@ -185,6 +185,18 @@ def render_advanced_markdown(report: Mapping[str, Any]) -> str:
             f"{_format_usd(item.get('estimated_total_cost_usd'))} | "
             f"{item['status']} |"
         )
+    if any(item.get("status") == "model_not_priced" for item in costs):
+        lines.extend(
+            [
+                "",
+                (
+                    "> `model_not_priced` is `N/A`: the Trace either did not "
+                    "report an actual model identifier (`model=unreported`) or "
+                    "that model is absent from the pricing config. Agent `target` "
+                    "names are never treated as model identifiers."
+                ),
+            ]
+        )
 
     lines.extend(
         [

@@ -59,6 +59,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--judge-url")
     parser.add_argument("--judge-model")
+    parser.add_argument(
+        "--judge-allowed-host",
+        action="append",
+        default=[],
+        help="Exact Judge hostname allowed for outbound evaluation data; repeatable",
+    )
     parser.add_argument("--judge-timeout-seconds", type=float, default=60.0)
     parser.add_argument(
         "--subprocess-command",
@@ -125,6 +131,7 @@ def _build_judge(args: argparse.Namespace) -> JudgeAdapter:
     transport = HttpJudgeTransport(
         args.judge_url,
         api_key=os.environ.get("AGENT_EVAL_JUDGE_API_KEY"),
+        allowed_hosts=args.judge_allowed_host,
         timeout_seconds=args.judge_timeout_seconds,
     )
     return StructuredJudgeAdapter(

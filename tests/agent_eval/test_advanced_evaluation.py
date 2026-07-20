@@ -220,3 +220,41 @@ def test_advanced_report_preserves_unavailable_cost_as_na(
     assert "N/A" in markdown
     assert "## Claim Results" in markdown
     assert "## Cost by Run" in markdown
+
+
+def test_advanced_report_explains_unreported_real_agent_model(
+    synthetic_cases: list[AgentEvalCase],
+    synthetic_traces: list[AgentRunTrace],
+) -> None:
+    case = _case_with_repeat(synthetic_cases[0], 1)
+    trace = synthetic_traces[0].model_copy(deep=True)
+    trace.target = "ai-agent-rag"
+    trace.metadata.pop("model", None)
+    trace.usage.metadata = {"origin": "langchain_callbacks"}
+    judge = StructuredJudgeAdapter(
+        DeterministicMockJudgeTransport(),
+        judge_model="offline-mock",
+    )
+    result = asyncio.run(
+        run_advanced_evaluation(
+            [case],
+            FixtureRunner([trace]),
+            judge,
+            load_pricing_config(PRICING_PATH),
+        )
+    )
+    report = build_advanced_report(
+        result,
+        runner="fixture",
+        judge_adapter="mock",
+        cases_path="cases.json",
+        traces_path="traces.json",
+        pricing_path=PRICING_PATH,
+    )
+
+    markdown = render_advanced_markdown(report)
+
+    assert result.costs[0].status == "model_not_priced"
+    assert result.costs[0].estimated_total_cost_usd is None
+    assert "model=unreported" in markdown
+    assert "target` names are never treated as model identifiers" in markdown

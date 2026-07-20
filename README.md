@@ -422,7 +422,9 @@ PYTHONPATH=src python scripts/run_agent_advanced_evaluation.py \
   --judge mock
 ```
 
-出力は `.artifacts/agent-advanced/report.json` と `report.md` です。GroundednessとAnswer Semantic Consistencyは独立Judgeを使い、Judge model／prompt version／実行日時を保存します。Costは [agent_pricing.json](config/agent_pricing.json) の `pricing_version` とmodel別token単価を記録し、usage欠損を `N/A` とします。外部JudgeはPRでは実行せず、GitHub Actionsの手動 `Advanced Agent Monitoring` Jobだけが実 `ai-agent-rag` と組み合わせて起動します。schema、計算式、HTTP契約、既知の限界は [Phase 6 高度Agent評価](docs/agent_advanced_evaluation.md) を参照してください。
+出力は `.artifacts/agent-advanced/report.json` と `report.md` です。GroundednessとAnswer Semantic Consistencyは独立Judgeを使い、Judge model／prompt version／実行日時を保存します。Tool Evidenceは明示的なdeterministic Structured Query factsだけを許可するdefault denyです。Costは [agent_pricing.json](config/agent_pricing.json) の `pricing_version` とmodel別token単価を記録し、usageまたは実model IDの欠損を `N/A` とします。Agentのtarget名をmodel名として価格付けしません。
+
+外部JudgeはPRでは実行しません。手動 `Advanced Agent Monitoring` JobはGitHub Environment `agent-evaluation` の承認後だけ起動し、URL・model・許可hostをVariables、API keyをSecretから取得します。外部Judgeには質問、回答、Source snippet、許可されたTool factsが送信されるため、送信先とデータ取扱条件の承認が必要です。schema、計算式、信頼境界、HTTP契約、既知の限界は [Phase 6 高度Agent評価](docs/agent_advanced_evaluation.md) を参照してください。
 
 ## 既知の制限
 

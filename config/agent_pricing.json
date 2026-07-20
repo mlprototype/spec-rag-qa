@@ -1,10 +1,10 @@
 {
   "schema_version": "1.0",
-  "pricing_version": "phase6-synthetic-2026-07-20-v1",
+  "pricing_version": "phase6-synthetic-2026-07-20-v2",
   "currency": "USD",
   "token_unit": 1000000,
   "models": {
-    "synthetic-fixture-agent": {
+    "synthetic-eval-model-v1": {
       "input_usd_per_unit": 1.0,
       "output_usd_per_unit": 2.0
     },
