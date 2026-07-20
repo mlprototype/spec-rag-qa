@@ -4,6 +4,7 @@
     "run_id": "synthetic-run-01",
     "case_id": "agent-direct-greeting",
     "target": "synthetic-fixture-agent",
+    "metadata": {"model": "synthetic-eval-model-v1"},
     "input": {
       "question": "こんにちは。利用できる機能を簡潔に教えてください。"
     },
@@ -51,6 +52,7 @@
     "run_id": "synthetic-run-02",
     "case_id": "agent-direct-help",
     "target": "synthetic-fixture-agent",
+    "metadata": {"model": "synthetic-eval-model-v1"},
     "input": {
       "question": "このQAシステムの使い方を一文で説明してください。"
     },
@@ -98,6 +100,7 @@
     "run_id": "synthetic-run-03",
     "case_id": "agent-direct-scope",
     "target": "synthetic-fixture-agent",
+    "metadata": {"model": "synthetic-eval-model-v1"},
     "input": {
       "question": "個人情報を入力せずに質問できますか。"
     },
@@ -145,6 +148,7 @@
     "run_id": "synthetic-run-04",
     "case_id": "agent-definition-session-timeout",
     "target": "synthetic-fixture-agent",
+    "metadata": {"model": "synthetic-eval-model-v1"},
     "input": {
       "question": "セッションタイムアウトの定義を教えてください。"
     },
@@ -220,6 +224,7 @@
     "run_id": "synthetic-run-05",
     "case_id": "agent-definition-password-policy",
     "target": "synthetic-fixture-agent",
+    "metadata": {"model": "synthetic-eval-model-v1"},
     "input": {
       "question": "パスワード最小文字数の定義は何ですか。"
     },
@@ -295,6 +300,7 @@
     "run_id": "synthetic-run-06",
     "case_id": "agent-retrieval-error-409",
     "target": "synthetic-fixture-agent",
+    "metadata": {"model": "synthetic-eval-model-v1"},
     "input": {
       "question": "登録済みメールで会員登録した場合のHTTPステータスは何ですか。"
     },
@@ -370,6 +376,7 @@
     "run_id": "synthetic-run-07",
     "case_id": "agent-retrieval-audit-user-id",
     "target": "synthetic-fixture-agent",
+    "metadata": {"model": "synthetic-eval-model-v1"},
     "input": {
       "question": "監査ログにUSER_IDは必須ですか。"
     },
@@ -445,6 +452,7 @@
     "run_id": "synthetic-run-08",
     "case_id": "agent-complex-lockout-exceptions",
     "target": "synthetic-fixture-agent",
+    "metadata": {"model": "synthetic-eval-model-v1"},
     "input": {
       "question": "アカウントロック条件と解除時の例外をまとめてください。"
     },
@@ -533,6 +541,7 @@
     "run_id": "synthetic-run-09",
     "case_id": "agent-complex-retention-conflict",
     "target": "synthetic-fixture-agent",
+    "metadata": {"model": "synthetic-eval-model-v1"},
     "input": {
       "question": "監査ログとサポートログの保持期間が競合する場合の優先規則を説明してください。"
     },
@@ -621,6 +630,7 @@
     "run_id": "synthetic-run-10",
     "case_id": "agent-complex-incident-procedure",
     "target": "synthetic-fixture-agent",
+    "metadata": {"model": "synthetic-eval-model-v1"},
     "input": {
       "question": "認証障害時の検知から復旧確認までの手順を根拠付きで整理してください。"
     },
@@ -709,6 +719,7 @@
     "run_id": "synthetic-run-11",
     "case_id": "agent-structured-orders-q1",
     "target": "synthetic-fixture-agent",
+    "metadata": {"model": "synthetic-eval-model-v1"},
     "input": {
       "question": "2025年Q1の注文件数は何件ですか？"
     },
@@ -780,6 +791,7 @@
     "run_id": "synthetic-run-12",
     "case_id": "agent-structured-sales-q2",
     "target": "synthetic-fixture-agent",
+    "metadata": {"model": "synthetic-eval-model-v1"},
     "input": {
       "question": "2025年Q2の売上合計を教えてください。"
     },
@@ -851,6 +863,7 @@
     "run_id": "synthetic-run-13",
     "case_id": "agent-structured-inventory-average",
     "target": "synthetic-fixture-agent",
+    "metadata": {"model": "synthetic-eval-model-v1"},
     "input": {
       "question": "在庫の平均を教えてください。"
     },
@@ -922,6 +935,7 @@
     "run_id": "synthetic-run-14",
     "case_id": "agent-structured-sales-top-q3",
     "target": "synthetic-fixture-agent",
+    "metadata": {"model": "synthetic-eval-model-v1"},
     "input": {
       "question": "2025年Q3の売上トップ3製品は？"
     },
@@ -993,6 +1007,7 @@
     "run_id": "synthetic-run-15",
     "case_id": "agent-compare-password-policies",
     "target": "synthetic-fixture-agent",
+    "metadata": {"model": "synthetic-eval-model-v1"},
     "input": {
       "question": "現行パスワードポリシーと改訂版パスワードポリシーの違いを教えてください。"
     },
@@ -1082,6 +1097,7 @@
     "run_id": "synthetic-run-16",
     "case_id": "agent-compare-retention-standards",
     "target": "synthetic-fixture-agent",
+    "metadata": {"model": "synthetic-eval-model-v1"},
     "input": {
       "question": "監査ログ基準とサポートログ基準の違いを教えてください。"
     },
@@ -1171,6 +1187,7 @@
     "run_id": "synthetic-run-17",
     "case_id": "agent-compare-api-versions",
     "target": "synthetic-fixture-agent",
+    "metadata": {"model": "synthetic-eval-model-v1"},
     "input": {
       "question": "会員登録API v1と会員登録API v2の違いを教えてください。"
     },
@@ -1260,6 +1277,7 @@
     "run_id": "synthetic-run-18",
     "case_id": "agent-insufficient-future-roadmap",
     "target": "synthetic-fixture-agent",
+    "metadata": {"model": "synthetic-eval-model-v1"},
     "input": {
       "question": "2028年に予定している認証機能のロードマップを教えてください。"
     },
@@ -1323,6 +1341,7 @@
     "run_id": "synthetic-run-19",
     "case_id": "agent-insufficient-unpublished-pricing",
     "target": "synthetic-fixture-agent",
+    "metadata": {"model": "synthetic-eval-model-v1"},
     "input": {
       "question": "未公開の次期料金プランを正確に教えてください。"
     },
@@ -1386,6 +1405,7 @@
     "run_id": "synthetic-run-20",
     "case_id": "agent-fallback-search-timeout",
     "target": "synthetic-fixture-agent",
+    "metadata": {"model": "synthetic-eval-model-v1"},
     "input": {
       "question": "検索がタイムアウトした場合でも、分かる範囲と制約を説明してください。"
     },
