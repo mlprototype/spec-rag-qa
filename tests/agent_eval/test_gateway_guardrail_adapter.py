@@ -9,6 +9,8 @@ from ragqa.agent_eval.adapters.gateway import (
     GatewayGuardrailAdapter,
     GatewayHttpRunner,
     GatewayInvalidResponseError,
+    GatewayTransportError,
+    _RejectRedirectHandler,
 )
 
 
@@ -79,6 +81,80 @@ def test_explicit_allow_header_is_observable(
     assert trace.guardrail.action == "allow"
 
 
+@pytest.mark.parametrize(
+    ("category", "expected_category"),
+    [("INJECTION", "injection"), ("PII", "pii")],
+)
+def test_allow_with_detection_category_keeps_detection_and_action_independent(
+    guardrail_cases: list[AgentEvalCase],
+    category: str,
+    expected_category: str,
+) -> None:
+    trace = GatewayGuardrailAdapter().normalize(
+        guardrail_cases[0],
+        status_code=200,
+        headers={
+            "X-Gateway-Security-Action": "ALLOW",
+            "X-Gateway-Security-Category": category,
+        },
+        body=json.dumps({"id": "chatcmpl-test", "choices": []}),
+        latency_ms=8.0,
+    )
+
+    assert trace.guardrail.detected is True
+    assert trace.guardrail.action == "allow"
+    assert expected_category in trace.guardrail.categories
+
+
+def test_block_reason_without_action_header_is_block(
+    guardrail_cases: list[AgentEvalCase],
+) -> None:
+    trace = GatewayGuardrailAdapter().normalize(
+        guardrail_cases[0],
+        status_code=403,
+        headers={"X-Gateway-Block-Reason": "INJECTION_DETECTED"},
+        body=json.dumps({"status": 403, "error": "Forbidden"}),
+        latency_ms=8.0,
+    )
+
+    assert trace.guardrail.detected is True
+    assert trace.guardrail.action == "block"
+    assert trace.guardrail.blocked is True
+    assert "injection" in trace.guardrail.categories
+
+
+def test_category_without_action_is_detected_with_unknown_action(
+    guardrail_cases: list[AgentEvalCase],
+) -> None:
+    trace = GatewayGuardrailAdapter().normalize(
+        guardrail_cases[0],
+        status_code=200,
+        headers={"X-Gateway-Security-Category": "PII"},
+        body=json.dumps({"id": "chatcmpl-test", "choices": []}),
+        latency_ms=8.0,
+    )
+
+    assert trace.guardrail.detected is True
+    assert trace.guardrail.action == "unknown"
+    assert trace.guardrail.categories == ["pii"]
+
+
+@pytest.mark.parametrize("action", ["WARN", "MASK", "BLOCK"])
+def test_controlling_action_implies_detection(
+    guardrail_cases: list[AgentEvalCase], action: str
+) -> None:
+    trace = GatewayGuardrailAdapter().normalize(
+        guardrail_cases[0],
+        status_code=200,
+        headers={"X-Gateway-Security-Action": action},
+        body=json.dumps({"id": "chatcmpl-test", "choices": []}),
+        latency_ms=8.0,
+    )
+
+    assert trace.guardrail.detected is True
+    assert trace.guardrail.action == action.lower()
+
+
 def test_provider_input_redaction_is_normalized_as_mask(
     guardrail_cases: list[AgentEvalCase],
 ) -> None:
@@ -145,3 +221,81 @@ def test_gateway_host_must_match_allowlist() -> None:
 
     assert endpoint not in str(exc_info.value)
     assert "unapproved.example.test" not in str(exc_info.value)
+
+
+def test_gateway_allowlist_is_required_when_omitted() -> None:
+    endpoint = "https://gateway.example.test/v1/chat/completions"
+
+    with pytest.raises(ValueError, match="allowlist must not be empty") as exc_info:
+        GatewayHttpRunner(endpoint)
+
+    assert endpoint not in str(exc_info.value)
+
+
+@pytest.mark.parametrize("allowed_hosts", [None, set()])
+def test_gateway_allowlist_rejects_none_or_empty(
+    allowed_hosts: object,
+) -> None:
+    endpoint = "https://gateway.example.test/v1/chat/completions"
+
+    with pytest.raises(ValueError, match="allowlist must not be empty") as exc_info:
+        GatewayHttpRunner(endpoint, allowed_hosts=allowed_hosts)  # type: ignore[arg-type]
+
+    assert endpoint not in str(exc_info.value)
+
+
+def test_gateway_allowlist_exact_match_allows_construction() -> None:
+    GatewayHttpRunner(
+        "https://gateway.example.test/v1/chat/completions",
+        allowed_hosts={"gateway.example.test"},
+    )
+
+
+def test_gateway_allowlist_normalizes_case_and_trailing_dot() -> None:
+    GatewayHttpRunner(
+        "https://GATEWAY.EXAMPLE.TEST./v1/chat/completions",
+        allowed_hosts={"Gateway.Example.Test."},
+    )
+
+
+def test_gateway_allowlist_does_not_match_subdomains() -> None:
+    endpoint = "https://child.gateway.example.test/v1/chat/completions"
+
+    with pytest.raises(ValueError, match="configured allowlist") as exc_info:
+        GatewayHttpRunner(
+            endpoint,
+            allowed_hosts={"gateway.example.test"},
+        )
+
+    assert endpoint not in str(exc_info.value)
+
+
+@pytest.mark.parametrize(
+    "allowed_host",
+    ["*.example.test", "https://gateway.example.test"],
+)
+def test_gateway_allowlist_rejects_wildcard_and_url_values(
+    allowed_host: str,
+) -> None:
+    endpoint = "https://gateway.example.test/v1/chat/completions"
+
+    with pytest.raises(ValueError, match="allowed host entry is invalid") as exc_info:
+        GatewayHttpRunner(endpoint, allowed_hosts={allowed_host})
+
+    assert endpoint not in str(exc_info.value)
+
+
+def test_gateway_redirects_remain_rejected_without_echoing_response() -> None:
+    response_body = "PRIVATE_RESPONSE_BODY"
+
+    with pytest.raises(GatewayTransportError, match="redirects are not allowed") as exc_info:
+        _RejectRedirectHandler().redirect_request(
+            None,
+            None,
+            302,
+            response_body,
+            {},
+            "https://gateway.example.test/redirected",
+        )
+
+    assert response_body not in str(exc_info.value)

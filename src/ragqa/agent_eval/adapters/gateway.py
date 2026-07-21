@@ -94,22 +94,23 @@ class GatewayGuardrailAdapter:
         block_reason = raw_block_reason.upper() if raw_block_reason else None
         categories = _read_categories(header_lookup, block_reason)
         mask_applied, mask_evidence = _observe_mask(provider_input, body_value)
+        has_detection_evidence = _has_detection_evidence(
+            blocked=blocked,
+            block_reason=block_reason,
+            categories=categories,
+        )
 
-        if action == "unknown" and blocked:
+        if action == "unknown" and (blocked or block_reason is not None):
             action = "block"
         if action == "unknown" and mask_applied is True:
             action = "mask"
             if "pii" not in categories:
                 categories.insert(0, "pii")
 
-        if action == "allow":
-            detected: bool | None = False
-        elif action in {"warn", "mask", "block"}:
-            detected = True
-        elif blocked or block_reason is not None or categories:
-            detected = True
-        else:
-            detected = None
+        detected = _resolve_detected(
+            action=action,
+            has_detection_evidence=has_detection_evidence,
+        )
 
         codes = []
         if block_reason:
@@ -120,7 +121,7 @@ class GatewayGuardrailAdapter:
 
         guardrail = GuardrailTrace(
             triggered=detected is True,
-            blocked=action == "block",
+            blocked=blocked or action == "block",
             codes=codes,
             detected=detected,
             action=action,
@@ -159,7 +160,7 @@ class GatewayHttpRunner:
         endpoint: str,
         *,
         api_key: str | None = None,
-        allowed_hosts: Collection[str] | None = None,
+        allowed_hosts: Collection[str] = (),
         timeout_seconds: float = 30.0,
     ) -> None:
         if timeout_seconds <= 0:
@@ -167,11 +168,11 @@ class GatewayHttpRunner:
         parsed = _parse_endpoint(endpoint)
         if api_key and parsed.scheme != "https":
             raise ValueError("Gateway API key requires an HTTPS endpoint")
-        allowed = {
-            _normalize_allowed_host(host) for host in (allowed_hosts or [])
-        }
+        if isinstance(allowed_hosts, (str, bytes)) or not allowed_hosts:
+            raise ValueError("Gateway endpoint host allowlist must not be empty")
+        allowed = {_normalize_allowed_host(host) for host in allowed_hosts}
         hostname = (parsed.hostname or "").lower().rstrip(".")
-        if allowed and hostname not in allowed:
+        if hostname not in allowed:
             raise ValueError("Gateway endpoint host is not in the configured allowlist")
         self._endpoint = endpoint
         self._api_key = api_key
@@ -260,6 +261,27 @@ def _read_explicit_action(headers: Mapping[str, str]) -> str:
     return value if value in {"allow", "warn", "mask", "block"} else "unknown"
 
 
+def _has_detection_evidence(
+    *,
+    blocked: bool,
+    block_reason: str | None,
+    categories: Collection[str],
+) -> bool:
+    return blocked or block_reason is not None or bool(categories)
+
+
+def _resolve_detected(
+    *, action: str, has_detection_evidence: bool
+) -> bool | None:
+    if has_detection_evidence:
+        return True
+    if action in {"warn", "mask", "block"}:
+        return True
+    if action == "allow":
+        return False
+    return None
+
+
 def _read_categories(
     headers: Mapping[str, str], block_reason: str | None
 ) -> list[str]:
@@ -312,6 +334,8 @@ def _parse_endpoint(url: str) -> urllib_parse.SplitResult:
 
 
 def _normalize_allowed_host(host: str) -> str:
+    if not isinstance(host, str):
+        raise ValueError("Gateway allowed host entry is invalid")
     normalized = host.strip().lower().rstrip(".")
     if not normalized or any(marker in normalized for marker in "/@?#*"):
         raise ValueError("Gateway allowed host entry is invalid")

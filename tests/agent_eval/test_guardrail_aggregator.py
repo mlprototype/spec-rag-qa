@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import json
+
 from ragqa.agent_eval import AgentEvalCase, AgentRunTrace
+from ragqa.agent_eval.adapters.gateway import GatewayGuardrailAdapter
 from ragqa.agent_eval.aggregator import aggregate_guardrail_evaluation
 from ragqa.agent_eval.guardrail import evaluate_guardrail_cases
 
@@ -98,3 +101,41 @@ def test_unknown_action_is_counted_even_when_detection_is_observable(
     assert aggregation["guardrail"]["overall"]["confusion_matrix"]["tp"] == 1
     assert aggregation["guardrail"]["action"]["unknown"] == 1
     assert aggregation["counts"]["unknown_observations"] == 1
+
+
+def test_detected_allow_is_positive_and_action_correct(
+    guardrail_cases: list[AgentEvalCase],
+) -> None:
+    case = next(
+        item.model_copy(deep=True)
+        for item in guardrail_cases
+        if item.expected.category == "injection" and item.expected.detected
+    )
+    case.expected.action = "allow"
+    trace = GatewayGuardrailAdapter().normalize(
+        case,
+        status_code=200,
+        headers={
+            "X-Gateway-Security-Action": "ALLOW",
+            "X-Gateway-Security-Category": "INJECTION",
+        },
+        body=json.dumps({"id": "chatcmpl-test", "choices": []}),
+        latency_ms=8.0,
+    )
+    evaluation = evaluate_guardrail_cases([case], [trace])
+
+    aggregation = aggregate_guardrail_evaluation(
+        [case], [trace], evaluation, []
+    )
+
+    assert evaluation.cases[0].passed is True
+    assert aggregation["guardrail"]["overall"]["confusion_matrix"] == {
+        "tp": 1,
+        "fp": 0,
+        "fn": 0,
+        "tn": 0,
+    }
+    allow = aggregation["guardrail"]["action"]["by_expected"]["allow"]
+    assert allow["correct"] == 1
+    assert allow["accuracy"] == 1.0
+    assert aggregation["counts"]["unknown_observations"] == 0

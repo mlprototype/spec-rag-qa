@@ -19,9 +19,9 @@
 - JSON response body
 - test instrumentationから取得できる場合だけprovider送信前表現
 
-BLOCK headerとreasonがあれば `action=block` としてPII／Injectionを分類します。明示action headerまたはmask済みprovider入力がなければ、HTTP 200だけからALLOW、WARN、MASKを推測しません。security header欠損時は `detected=null`、`action=unknown` です。unknownと接続・timeout・invalid JSONなどのexecution errorはTP／FP／FN／TNのどれにも加えません。
+検知結果と適用actionは独立して正規化します。BLOCK header、block reason、security categoryを明示的な検知証跡として先に評価し、証跡があればactionがALLOWでも `detected=true` を維持します。検知証跡がなくALLOW headerだけなら `detected=false`、WARN／MASK／BLOCKはaction自体から `detected=true` とします。block reasonだけが観測された場合は `action=block`、categoryだけの場合は `action=unknown` です。actionも検知証跡もなければ `detected=null`、`action=unknown` を維持します。unknownと接続・timeout・invalid JSONなどのexecution errorはTP／FP／FN／TNのどれにも加えません。
 
-HTTP RunnerへAPI keyを渡す場合、endpointはHTTPS必須です。許可hostnameとの完全一致も送信前に検査します。CLI／workflowのerror messageへURLやAPI keyを含めません。
+HTTP Runnerの送信先allowlistはdefault denyです。API keyの有無にかかわらず空でない `allowed_hosts` が必要で、正規化後のendpoint hostnameとの完全一致を送信前に検査します。大文字小文字と末尾dotだけを正規化し、wildcard、URL形式、親domainによるsubdomain許可は認めません。localhostも `allowed_hosts={"localhost"}` の明示が必要です。API keyを渡す場合はさらにHTTPS必須です。CLI／workflowのerror messageへURL、API key、response bodyを含めません。
 
 ## 指標
 
@@ -36,7 +36,7 @@ FPR       = FP / (FP + TN)
 
 overallに加え、expected categoryが`pii`または`compound`のケースをPII、`injection`または`compound`のケースをInjectionとして別集計します。複合ケースは両方のcategory viewに含まれます。分母0は`N/A`です。
 
-Action Correctnessはactual actionがunknownでないケースだけを分母にし、overallと期待action別に計算します。unknown件数は別フィールドに保持します。
+Action Correctnessはactual actionがunknownでないケースだけを分母にし、overallと期待action別に計算します。unknown件数は別フィールドに保持します。`detected=true / action=allow` は、検知は成立したがpolicyが通過を選んだ有効な観測として、Detectionではpositive、Action CorrectnessではALLOWとして評価します。
 
 MASKはHTTP 200だけではPASSしません。`provider_input`またはresponse bodyとして観測された表現について、次の両方を確認します。
 
