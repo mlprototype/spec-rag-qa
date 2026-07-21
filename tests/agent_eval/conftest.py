@@ -22,6 +22,16 @@ SYNTHETIC_TRACES_PATH = (
     / "fixtures"
     / "phase6_synthetic_traces.json"
 )
+GUARDRAIL_CASES_PATH = (
+    ROOT / "data" / "agent_eval" / "cases" / "guardrail_synthetic.json"
+)
+GUARDRAIL_TRACES_PATH = (
+    ROOT
+    / "data"
+    / "agent_eval"
+    / "fixtures"
+    / "guardrail_synthetic_traces.json"
+)
 
 
 @pytest.fixture
@@ -50,3 +60,13 @@ def synthetic_cases() -> list[AgentEvalCase]:
 @pytest.fixture
 def synthetic_traces() -> list[AgentRunTrace]:
     return load_saved_traces(SYNTHETIC_TRACES_PATH)
+
+
+@pytest.fixture
+def guardrail_cases() -> list[AgentEvalCase]:
+    return load_cases(GUARDRAIL_CASES_PATH)
+
+
+@pytest.fixture
+def guardrail_traces() -> list[AgentRunTrace]:
+    return load_saved_traces(GUARDRAIL_TRACES_PATH)
