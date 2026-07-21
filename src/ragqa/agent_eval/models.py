@@ -9,6 +9,9 @@ NonEmptyStr = Annotated[str, StringConstraints(strip_whitespace=True, min_length
 NonNegativeFloat = Annotated[float, Field(ge=0, allow_inf_nan=False)]
 NonNegativeInt = Annotated[int, Field(ge=0)]
 Confidence = Annotated[float, Field(ge=0, le=1, allow_inf_nan=False)]
+GuardrailAction = Literal["allow", "warn", "mask", "block", "unknown"]
+ExpectedGuardrailAction = Literal["allow", "warn", "mask", "block"]
+GuardrailCategory = Literal["pii", "injection", "compound"]
 
 
 class AgentEvalModel(BaseModel):
@@ -69,6 +72,11 @@ class AgentEvalExpected(AgentEvalModel):
     citation_required: bool
     answer_assertions: list[NonEmptyStr] = Field(default_factory=list)
     answer_format: AnswerFormatExpectation | None = None
+    detected: bool | None = None
+    category: GuardrailCategory | None = None
+    action: ExpectedGuardrailAction | None = None
+    masked_values: list[NonEmptyStr] = Field(default_factory=list)
+    mask_replacement_patterns: list[NonEmptyStr] = Field(default_factory=list)
 
 
 class AgentEvalBudgets(AgentEvalModel):
@@ -142,6 +150,15 @@ class GuardrailTrace(AgentEvalModel):
     blocked: bool = False
     codes: list[NonEmptyStr] = Field(default_factory=list)
     messages: list[NonEmptyStr] = Field(default_factory=list)
+    detected: bool | None = None
+    action: GuardrailAction = "unknown"
+    categories: list[NonEmptyStr] = Field(default_factory=list)
+    http_status: Annotated[int, Field(ge=100, le=599)] | None = None
+    security_headers: dict[NonEmptyStr, str] = Field(default_factory=dict)
+    body: Any | None = None
+    provider_input: Any | None = None
+    mask_applied: bool | None = None
+    mask_evidence: Literal["provider_input", "response_body"] | None = None
 
 
 class ControlTrace(AgentEvalModel):

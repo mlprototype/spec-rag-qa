@@ -37,6 +37,23 @@ def test_offline_ci_always_uploads_current_reports_and_log() -> None:
     assert ".artifacts/agent-quality/run.log" in upload_step
 
 
+def test_offline_ci_runs_guardrail_fixture_without_gateway_secret() -> None:
+    workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
+    offline_job = workflow.split("  real-agent-evaluation:", maxsplit=1)[0]
+
+    cleanup_index = offline_job.index("rm -rf .artifacts/guardrail-quality")
+    evaluation_index = offline_job.index(
+        "python scripts/run_guardrail_evaluation.py"
+    )
+
+    assert cleanup_index < evaluation_index
+    assert "--runner fixture" in offline_job
+    assert ".artifacts/guardrail-quality/report.json" in offline_job
+    assert ".artifacts/guardrail-quality/report.md" in offline_job
+    assert ".artifacts/guardrail-quality/run.log" in offline_job
+    assert "GATEWAY_API_KEY" not in offline_job
+
+
 def test_generated_artifacts_are_ignored_and_tracked_reports_are_examples() -> None:
     gitignore_entries = (ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()
 
@@ -84,3 +101,31 @@ def test_advanced_judge_is_dispatch_only_and_not_part_of_pr_gate() -> None:
     assert ".artifacts/agent-advanced/report.json" in advanced_job
     assert ".artifacts/agent-advanced/report.md" in advanced_job
     assert ".artifacts/agent-advanced/run.log" in advanced_job
+
+
+def test_real_gateway_guardrail_evaluation_is_dispatch_only() -> None:
+    workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
+    dispatch_config = workflow.split("permissions:", maxsplit=1)[0]
+    offline_job = workflow.split("  real-agent-evaluation:", maxsplit=1)[0]
+    gateway_job = workflow.split(
+        "  gateway-guardrail-evaluation:", maxsplit=1
+    )[1]
+
+    assert "gateway_url:" not in dispatch_config
+    assert "inputs.gateway_url" not in workflow
+    assert "GATEWAY_API_KEY" not in offline_job
+    assert "github.event_name == 'workflow_dispatch'" in gateway_job
+    assert "inputs.run_gateway_guardrail" in gateway_job
+    assert "environment: gateway-evaluation" in gateway_job
+    assert "--runner http" in gateway_job
+    assert '--gateway-url "$GATEWAY_EVAL_URL"' in gateway_job
+    assert '--gateway-allowed-host "$GATEWAY_EVAL_ALLOWED_HOST"' in gateway_job
+    assert "GATEWAY_EVAL_URL: ${{ vars.GATEWAY_EVAL_URL }}" in gateway_job
+    assert (
+        "GATEWAY_EVAL_ALLOWED_HOST: ${{ vars.GATEWAY_EVAL_ALLOWED_HOST }}"
+        in gateway_job
+    )
+    assert "GATEWAY_API_KEY: ${{ secrets.GATEWAY_API_KEY }}" in gateway_job
+    assert workflow.count("secrets.GATEWAY_API_KEY") == 1
+    assert "if: always()" in gateway_job
+    assert "include-hidden-files: true" in gateway_job
