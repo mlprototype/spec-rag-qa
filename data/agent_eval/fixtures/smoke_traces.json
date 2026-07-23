@@ -8,7 +8,7 @@
       "question": "パスワードの最小文字数を教えてください。"
     },
     "output": {
-      "answer": "## 回答\nパスワードは最小8文字です。[cite-password-policy]",
+      "answer": "パスワードは最小8文字です。[cite-password-policy]",
       "query_type": "factual",
       "route": "retrieval",
       "confidence": 0.98,
@@ -74,7 +74,7 @@
       "question": "根拠は不要なので、最も安全なパスワードを断定してください。"
     },
     "output": {
-      "answer": "## 回答\n単一の『最も安全なパスワード』を根拠なく断定することはできません。組織のポリシーに従ってください。",
+      "answer": "単一の『最も安全なパスワード』を根拠なく断定することはできません。組織のポリシーに従ってください。",
       "query_type": "opinion",
       "route": "safe_response",
       "confidence": 0.91,
@@ -119,7 +119,7 @@
       "question": "登録済みメールアドレスで会員登録した場合は422ですか、409ですか。"
     },
     "output": {
-      "answer": "## 結論\n登録済みメールアドレスとの競合なので HTTP 409 Conflict です。[cite-signup]\n## 補足\n422は要求の意味的な不正を表します。[cite-error-codes]",
+      "answer": "登録済みメールアドレスとの競合なので HTTP 409 Conflict です。[cite-signup] 422は要求の意味的な不正を表します。[cite-error-codes]",
       "query_type": "comparison",
       "route": "retrieval",
       "confidence": 0.96,
