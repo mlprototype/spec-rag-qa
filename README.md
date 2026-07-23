@@ -388,54 +388,6 @@ spec-rag-qa/
 └── requirements.txt                        # 依存ライブラリ
 ```
 
-## Agent評価
-
-Phase 6の決定論的Agent評価は、20件の公開可能な合成ケースをFixture、保存Trace、Subprocess Adapterから同じ評価パイプラインへ入力します。APIキーなしの標準実行は、評価、集計、JSON／Markdown report、Baseline比較、品質Gateを一括して行います。
-
-```bash
-PYTHONPATH=src python scripts/run_agent_evaluation.py --runner fixture
-```
-
-保存Traceを再評価するときは `--runner trace-file`、実 `ai-agent-rag` を実行するときは `--runner subprocess --subprocess-command "python scripts/run_agent_trace.py" --subprocess-cwd ../ai-agent-rag` を指定します。標準reportはGit管理されない `.artifacts/agent-quality/report.json` と `report.md` です。Git管理する出力例は `data/agent_eval/reports/example.json` と `example.md` に分離しています。終了コードはGate合格が0、評価済みTraceの品質Gate不合格が1、事前検査またはRunnerの `execution_error` が2です。
-
-Gateの閾値は [config/agent_quality_gate.yml](config/agent_quality_gate.yml) に集約しています。CriticalのTask Success／Format、Runner error、必須Tool、Tool schema、Citation Validityは絶対Gateであり、平均点による相殺を許しません。全体Task SuccessとRoute Accuracyはreview済みBaselineからの低下を許容せず、p95 latencyはBaselineの110%までを許容します。対象ケースがなく分母が0の指標は `N/A` のまま保持し、100%とは表示しません。
-
-Baselineは通常実行で変更されません。評価契約とTraceをreviewしたうえで、次の明示操作を行った場合だけ `data/agent_eval/baseline/agent_baseline.json` を更新します。
-
-```bash
-PYTHONPATH=src python scripts/run_agent_evaluation.py \
-  --runner fixture \
-  --update-baseline
-```
-
-[Agent Quality Gate workflow](.github/workflows/agent-quality-gate.yml) のPR JobはFixtureと保存済みBaselineだけを使うため、外部APIキーを必要としません。実行前に `.artifacts/agent-quality/` を作り直し、JSON／Markdown reportと実行ログを成功・失敗にかかわらずartifactへ保存します。実Agent評価は `workflow_dispatch` の `run_real_agent` を明示的に有効化した場合だけ、`ai_agent_ref` で指定したbranch／tag／commitを別Jobで実行します。
-
-合成Fixtureは契約回帰を決定論的に検出するためのもので、LLMの揺らぎ、実トラフィック比率、実ネットワークlatency、全Tool、認証・再試行、Citation内容の意味的支持を代表しません。本番判断では匿名化した実質問、実Trace、人手判定、障害注入、セキュリティ評価を追加してください。ケース一覧、Runner契約、事前検査、詳細な限界は [docs/agent_evaluation_dataset.md](docs/agent_evaluation_dataset.md) を参照してください。
-
-### 高度評価（monitor-only）
-
-Groundedness、repeat-run Stability、version付き価格表によるCostは、既存PR Gateから分離した高度評価CLIで実行します。APIキーなしのMock Judgeはschema、retry、集計、report経路の確認用です。
-
-```bash
-PYTHONPATH=src python scripts/run_agent_advanced_evaluation.py \
-  --runner fixture \
-  --judge mock
-```
-
-出力は `.artifacts/agent-advanced/report.json` と `report.md` です。GroundednessとAnswer Semantic Consistencyは独立Judgeを使い、Judge model／prompt version／実行日時を保存します。Tool Evidenceは明示的なdeterministic Structured Query factsだけを許可するdefault denyです。Costは [agent_pricing.json](config/agent_pricing.json) の `pricing_version` とmodel別token単価を記録し、usageまたは実model IDの欠損を `N/A` とします。Agentのtarget名をmodel名として価格付けしません。
-
-外部JudgeはPRでは実行しません。手動 `Advanced Agent Monitoring` JobはGitHub Environment `agent-evaluation` の承認後だけ起動し、URL・model・許可hostをVariables、API keyをSecretから取得します。外部Judgeには質問、回答、Source snippet、許可されたTool factsが送信されるため、送信先とデータ取扱条件の承認が必要です。schema、計算式、信頼境界、HTTP契約、既知の限界は [Phase 6 高度Agent評価](docs/agent_advanced_evaluation.md) を参照してください。
-
-### Gateway Guardrail評価
-
-`policy-aware-llm-gateway`向けGuardrail評価は、Prompt Injection、PII、正常near-miss、複合入力を同数の正例／負例で構成した30件の公開可能な合成ケースを使います。PRでは保存済み `AgentRunTrace.guardrail` Fixtureだけを評価するためGateway起動もAPIキーも不要です。
-
-```bash
-PYTHONPATH=src python scripts/run_guardrail_evaluation.py --runner fixture
-```
-
-Precision、Recall、F1、FPRをoverall／PII／Injection別に集計し、期待actionと実actionのaccuracy、MASKの置換証跡もJSON／Markdown reportへ出力します。`unknown`と`execution_error`はALLOWやTNへ含めず、分母0は`N/A`です。Gate閾値は [guardrail_quality_gate.yml](config/guardrail_quality_gate.yml)、データ・Adapter・実Gateway手順・観測上の限界は [Gateway Guardrail評価](docs/guardrail_evaluation.md) を参照してください。
-
 ## 既知の制限
 
 現在の品質管理は有効ですが、Goodhart's Law を避けるには「測っている指標が真の品質を完全には代表しない」ことを明示しておく必要があります。以下の制約は、既知のリスクとして管理対象に含めるべきものです。
