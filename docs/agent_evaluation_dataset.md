@@ -66,7 +66,7 @@ Runner timeout、終了コード非0、不正JSON、case_id不一致は、それ
 
 隣接 `ai-agent-rag` checkoutの `scripts/run_agent_trace.py` との実結合では、directの共通Routeと、Structured Queryケースの共通Route、`operation / target_metric / filters / target_dataset`、自然言語回答、Citationなしの契約を確認しています。retrieval、compareはモックSubprocessでAdapter経路を検証しています。実データを必要とするretrieval／compareの品質確認は、評価用コーパスの外部送信可否を確認した環境で実施します。
 
-共通Routeは `direct / structured_query / retrieval / compare` の4種類です。内部RouteはTraceの `output.metadata.internal_route` に観測事実として残し、期待Routeには使用しません。Structured Queryの回答は自然言語として評価し、構造化データSource自体には回答内Citationが付与されない現行仕様に合わせてCitationを必須にしていません。Compareも自然言語回答を必須とし、`left / right / aspects` と既存Agentの4セクション「共通点」「相違点」「向いているケース（使い分けの指針）」「注意点」を評価します。セクションラベルはMarkdown見出し、番号付き項目、コロン付きラベルを認識しますが、本文中の部分文字列では合格しません。
+共通Routeは `direct / structured_query / retrieval / compare` の4種類です。内部RouteはTraceの `output.metadata.internal_route` に観測事実として残し、期待Routeには使用しません。Structured Queryの回答は自然言語として評価し、構造化データSource自体には回答内Citationが付与されない現行仕様に合わせてCitationを必須にしていません。Compareは `left / right / aspects` を評価し、既存Agentの4見出し「共通点」「相違点」「向いているケース（使い分けの指針）」「注意点」を要求します。
 
 ## 事前検査
 

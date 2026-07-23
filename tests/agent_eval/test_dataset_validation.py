@@ -91,7 +91,6 @@ def test_compare_cases_match_real_agent_contract(
         schema = case.expected.tool_argument_schemas["compare_documents"]
         assert set(schema["properties"]) == {"left", "right", "aspects"}
         assert case.expected.answer_format is not None
-        assert case.expected.answer_format.format_type == "natural_language"
         assert case.expected.answer_format.required_sections == expected_sections
 
 
