@@ -235,4 +235,3 @@ data/eval/*baseline*
 # Rule and helper scripts
 GEMINI.md
 merge_code.py
-
