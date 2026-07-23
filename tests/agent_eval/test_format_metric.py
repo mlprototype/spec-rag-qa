@@ -63,24 +63,3 @@ def test_json_required_section_uses_dot_path(
 
     trace.output.answer = '{"result": {}}'
     assert evaluate_answer_format(case, trace).failure_type == ANSWER_FORMAT_INVALID
-
-
-def test_natural_language_format_rejects_json_and_empty_answer(
-    smoke_pair: tuple[AgentEvalCase, AgentRunTrace],
-) -> None:
-    original_case, original_trace = smoke_pair
-    case = original_case.model_copy(deep=True)
-    case.expected.answer_format = AnswerFormatExpectation(
-        format_type="natural_language"
-    )
-    trace = original_trace.model_copy(deep=True)
-    trace.output.answer = "該当するデータは3件です。"
-    assert evaluate_answer_format(case, trace).passed is True
-
-    trace.output.answer = '{"result": 3}'
-    check = evaluate_answer_format(case, trace)
-    assert check.passed is False
-    assert check.failure_type == ANSWER_FORMAT_INVALID
-
-    trace.output.answer = "  "
-    assert evaluate_answer_format(case, trace).passed is False

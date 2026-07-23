@@ -6,22 +6,11 @@ from pathlib import Path
 import pytest
 
 from ragqa.agent_eval import AgentEvalCase, AgentRunTrace, load_cases
-from ragqa.agent_eval.adapters.trace_file import load_saved_traces
 
 
 ROOT = Path(__file__).resolve().parents[2]
 CASES_PATH = ROOT / "data" / "agent_eval" / "cases" / "smoke.json"
 TRACES_PATH = ROOT / "data" / "agent_eval" / "fixtures" / "smoke_traces.json"
-SYNTHETIC_CASES_PATH = (
-    ROOT / "data" / "agent_eval" / "cases" / "phase6_synthetic.json"
-)
-SYNTHETIC_TRACES_PATH = (
-    ROOT
-    / "data"
-    / "agent_eval"
-    / "fixtures"
-    / "phase6_synthetic_traces.json"
-)
 
 
 @pytest.fixture
@@ -40,13 +29,3 @@ def smoke_pair(
     smoke_cases: list[AgentEvalCase], smoke_traces: list[AgentRunTrace]
 ) -> tuple[AgentEvalCase, AgentRunTrace]:
     return smoke_cases[0], smoke_traces[0]
-
-
-@pytest.fixture
-def synthetic_cases() -> list[AgentEvalCase]:
-    return load_cases(SYNTHETIC_CASES_PATH)
-
-
-@pytest.fixture
-def synthetic_traces() -> list[AgentRunTrace]:
-    return load_saved_traces(SYNTHETIC_TRACES_PATH)
