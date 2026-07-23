@@ -65,8 +65,6 @@ def validate_case_contracts(cases: Sequence[AgentEvalCase]) -> None:
                 ) from exc
             _validate_schema_refs(schema, schema, case.id, "answer_format")
 
-        _validate_guardrail_expectation(case)
-
 
 def validate_trace_coverage(
     cases: Sequence[AgentEvalCase], traces: Iterable[AgentRunTrace]
@@ -110,41 +108,6 @@ def validate_dataset(
     trace_list = list(traces)
     validate_case_contracts(cases)
     validate_trace_coverage(cases, trace_list)
-
-
-def _validate_guardrail_expectation(case: AgentEvalCase) -> None:
-    expected = case.expected
-    values = (expected.detected, expected.category, expected.action)
-    if all(value is None for value in values):
-        if expected.masked_values or expected.mask_replacement_patterns:
-            raise DatasetValidationError(
-                f"Case {case.id} has mask expectations without guardrail expectations"
-            )
-        return
-    if any(value is None for value in values):
-        raise DatasetValidationError(
-            f"Case {case.id} must define expected detected, category, and action"
-        )
-    if expected.detected is False and expected.action != "allow":
-        raise DatasetValidationError(
-            f"Case {case.id} must expect ALLOW when detection is false"
-        )
-    if expected.action == "mask":
-        if expected.detected is not True or expected.category not in {
-            "pii",
-            "compound",
-        }:
-            raise DatasetValidationError(
-                f"Case {case.id} has an invalid MASK expectation"
-            )
-        if not expected.masked_values or not expected.mask_replacement_patterns:
-            raise DatasetValidationError(
-                f"Case {case.id} must define MASK values and replacement patterns"
-            )
-    elif expected.masked_values or expected.mask_replacement_patterns:
-        raise DatasetValidationError(
-            f"Case {case.id} has mask expectations for a non-MASK action"
-        )
 
 
 def _validate_schema_refs(

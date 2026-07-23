@@ -426,16 +426,6 @@ PYTHONPATH=src python scripts/run_agent_advanced_evaluation.py \
 
 外部JudgeはPRでは実行しません。手動 `Advanced Agent Monitoring` JobはGitHub Environment `agent-evaluation` の承認後だけ起動し、URL・model・許可hostをVariables、API keyをSecretから取得します。外部Judgeには質問、回答、Source snippet、許可されたTool factsが送信されるため、送信先とデータ取扱条件の承認が必要です。schema、計算式、信頼境界、HTTP契約、既知の限界は [Phase 6 高度Agent評価](docs/agent_advanced_evaluation.md) を参照してください。
 
-### Gateway Guardrail評価
-
-`policy-aware-llm-gateway`向けGuardrail評価は、Prompt Injection、PII、正常near-miss、複合入力を同数の正例／負例で構成した30件の公開可能な合成ケースを使います。PRでは保存済み `AgentRunTrace.guardrail` Fixtureだけを評価するためGateway起動もAPIキーも不要です。
-
-```bash
-PYTHONPATH=src python scripts/run_guardrail_evaluation.py --runner fixture
-```
-
-Precision、Recall、F1、FPRをoverall／PII／Injection別に集計し、期待actionと実actionのaccuracy、MASKの置換証跡もJSON／Markdown reportへ出力します。`unknown`と`execution_error`はALLOWやTNへ含めず、分母0は`N/A`です。Gate閾値は [guardrail_quality_gate.yml](config/guardrail_quality_gate.yml)、データ・Adapter・実Gateway手順・観測上の限界は [Gateway Guardrail評価](docs/guardrail_evaluation.md) を参照してください。
-
 ## 既知の制限
 
 現在の品質管理は有効ですが、Goodhart's Law を避けるには「測っている指標が真の品質を完全には代表しない」ことを明示しておく必要があります。以下の制約は、既知のリスクとして管理対象に含めるべきものです。

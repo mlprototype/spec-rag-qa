@@ -1,11 +1,4 @@
 from ragqa.agent_eval.adapters.fixture import DuplicateFixtureTraceError, FixtureRunner
-from ragqa.agent_eval.adapters.gateway import (
-    GatewayGuardrailAdapter,
-    GatewayHttpRunner,
-    GatewayInvalidResponseError,
-    GatewayRunnerError,
-    GatewayTransportError,
-)
 from ragqa.agent_eval.adapters.subprocess import SubprocessAgentRunner
 from ragqa.agent_eval.adapters.trace_file import TraceFileRunner, load_saved_traces
 from ragqa.agent_eval.advanced import run_advanced_evaluation
@@ -32,7 +25,6 @@ from ragqa.agent_eval.advanced_report import (
 )
 from ragqa.agent_eval.aggregator import (
     aggregate_agent_evaluation,
-    aggregate_guardrail_evaluation,
     build_route_confusion_matrix,
     percentile,
 )
@@ -42,13 +34,6 @@ from ragqa.agent_eval.failure_types import (
     ANSWER_FORMAT_INVALID,
     CITATION_INVALID,
     CITATION_MISSING,
-    GUARDRAIL_ACTION_MISMATCH,
-    GUARDRAIL_CATEGORY_MISMATCH,
-    GUARDRAIL_FALSE_NEGATIVE,
-    GUARDRAIL_FALSE_POSITIVE,
-    GUARDRAIL_MASK_EVIDENCE_UNAVAILABLE,
-    GUARDRAIL_MASK_INVALID,
-    GUARDRAIL_OBSERVATION_UNKNOWN,
     LATENCY_BUDGET_EXCEEDED,
     REQUIRED_TOOL_NOT_CALLED,
     ROUTE_MISMATCH,
@@ -66,10 +51,6 @@ from ragqa.agent_eval.gate import (
     maybe_update_baseline,
 )
 from ragqa.agent_eval.groundedness import evaluate_groundedness
-from ragqa.agent_eval.guardrail import (
-    evaluate_guardrail_case,
-    evaluate_guardrail_cases,
-)
 from ragqa.agent_eval.judge import (
     DeterministicMockJudgeTransport,
     HttpJudgeTransport,
@@ -118,13 +99,7 @@ from ragqa.agent_eval.runner import (
     TraceFileNotFoundError,
     load_cases,
 )
-from ragqa.agent_eval.report import (
-    build_guardrail_report,
-    build_report,
-    render_guardrail_markdown,
-    render_markdown,
-    write_reports,
-)
+from ragqa.agent_eval.report import build_report, render_markdown, write_reports
 from ragqa.agent_eval.cost import (
     PricingConfigError,
     estimate_cost,
@@ -170,18 +145,6 @@ __all__ = [
     "FixtureRunner",
     "FixtureTraceMismatchError",
     "FixtureTraceNotFoundError",
-    "GatewayGuardrailAdapter",
-    "GatewayHttpRunner",
-    "GatewayInvalidResponseError",
-    "GatewayRunnerError",
-    "GatewayTransportError",
-    "GUARDRAIL_ACTION_MISMATCH",
-    "GUARDRAIL_CATEGORY_MISMATCH",
-    "GUARDRAIL_FALSE_NEGATIVE",
-    "GUARDRAIL_FALSE_POSITIVE",
-    "GUARDRAIL_MASK_EVIDENCE_UNAVAILABLE",
-    "GUARDRAIL_MASK_INVALID",
-    "GUARDRAIL_OBSERVATION_UNKNOWN",
     "GuardrailTrace",
     "GroundednessEvaluationResult",
     "GroundednessJudgeResponse",
@@ -225,11 +188,9 @@ __all__ = [
     "UsageTrace",
     "aggregate_metrics",
     "aggregate_agent_evaluation",
-    "aggregate_guardrail_evaluation",
     "build_baseline",
     "build_advanced_report",
     "build_report",
-    "build_guardrail_report",
     "build_route_confusion_matrix",
     "evaluate_assertion",
     "estimate_cost",
@@ -237,8 +198,6 @@ __all__ = [
     "evaluate_cases",
     "evaluate_quality_gate",
     "evaluate_groundedness",
-    "evaluate_guardrail_case",
-    "evaluate_guardrail_cases",
     "evaluate_stability",
     "load_baseline",
     "load_cases",
@@ -248,7 +207,6 @@ __all__ = [
     "maybe_update_baseline",
     "percentile",
     "render_markdown",
-    "render_guardrail_markdown",
     "render_advanced_markdown",
     "resolve_json_path",
     "run_advanced_evaluation",

@@ -64,33 +64,6 @@ def build_report(
     }
 
 
-def build_guardrail_report(
-    *,
-    runner: str,
-    cases_path: str | Path,
-    traces_path: str | Path | None,
-    evaluation: AgentEvaluationResult,
-    aggregation: Mapping[str, Any],
-    execution_errors: list[dict[str, str]],
-    gate: Mapping[str, Any],
-    generated_at: str | None = None,
-) -> dict[str, Any]:
-    """Build the JSON contract for Guardrail Precision/Recall evaluation."""
-
-    return {
-        "schema_version": evaluation.schema_version,
-        "report_type": "guardrail",
-        "generated_at": generated_at or _utc_now(),
-        "runner": runner,
-        "dataset": {
-            "cases_path": str(cases_path),
-            "traces_path": str(traces_path) if traces_path is not None else None,
-        },
-        "execution_errors": execution_errors,
-        "evaluation": evaluation.model_dump(mode="json"),
-        "aggregation": dict(aggregation),
-        "gate": dict(gate),
-    }
 def write_reports(
     report: Mapping[str, Any],
     json_path: str | Path,
@@ -105,154 +78,9 @@ def write_reports(
         encoding="utf-8",
     )
     markdown_report_path.write_text(
-        (
-            render_guardrail_markdown(report)
-            if report.get("report_type") == "guardrail"
-            else render_markdown(report)
-        ),
+        render_markdown(report),
         encoding="utf-8",
     )
-
-
-def render_guardrail_markdown(report: Mapping[str, Any]) -> str:
-    if "aggregation" not in report:
-        return _render_error_report(report, title="Guardrail Quality Report")
-
-    aggregation = report["aggregation"]
-    guardrail = aggregation["guardrail"]
-    counts = aggregation["counts"]
-    gate = report.get("gate", {})
-    overall = guardrail["overall"]
-    confusion = overall["confusion_matrix"]
-    lines = [
-        "# Guardrail Quality Report",
-        "",
-        f"- Generated: {report.get('generated_at', 'N/A')}",
-        f"- Runner: `{report.get('runner', 'N/A')}`",
-        f"- Gate: **{'PASS' if gate.get('passed') else 'FAIL'}**",
-        "",
-        "## Summary",
-        "",
-        "| Total | Evaluated | Passed | Evaluation FAIL | Unknown | Execution Error |",
-        "|---:|---:|---:|---:|---:|---:|",
-        (
-            f"| {counts['total_cases']} | {counts['evaluated_cases']} | "
-            f"{counts['passed_cases']} | {counts['failed_cases']} | "
-            f"{counts['unknown_observations']} | {counts['execution_errors']} |"
-        ),
-        "",
-        "## Guardrail Confusion Matrix",
-        "",
-        "| TP | FP | FN | TN | Unknown | Execution Error |",
-        "|---:|---:|---:|---:|---:|---:|",
-        (
-            f"| {confusion['tp']} | {confusion['fp']} | {confusion['fn']} | "
-            f"{confusion['tn']} | {overall['unknown']} | "
-            f"{overall['execution_errors']} |"
-        ),
-        "",
-        "## Detection Metrics",
-        "",
-        "| Category | Precision | Recall | F1 | FPR | Evaluable | Unknown |",
-        "|:---|---:|---:|---:|---:|---:|---:|",
-    ]
-    for category, metrics in (
-        ("overall", overall),
-        *guardrail["categories"].items(),
-    ):
-        lines.append(
-            f"| {category} | {_format_rate(metrics.get('precision'))} | "
-            f"{_format_rate(metrics.get('recall'))} | "
-            f"{_format_rate(metrics.get('f1'))} | "
-            f"{_format_rate(metrics.get('false_positive_rate'))} | "
-            f"{metrics['evaluable']} | {metrics['unknown']} |"
-        )
-
-    action = guardrail["action"]
-    lines.extend(
-        [
-            "",
-            "## Action Correctness",
-            "",
-            "| Expected Action | Correct | Evaluable | Accuracy | Unknown | Execution Error |",
-            "|:---|---:|---:|---:|---:|---:|",
-        ]
-    )
-    for expected, metrics in action["by_expected"].items():
-        lines.append(
-            f"| {expected} | {metrics['correct']} | {metrics['evaluable']} | "
-            f"{_format_rate(metrics.get('accuracy'))} | {metrics['unknown']} | "
-            f"{metrics['execution_errors']} |"
-        )
-    lines.append(
-        f"| **overall** | {action['correct']} | {action['evaluable']} | "
-        f"{_format_rate(action.get('accuracy'))} | {action['unknown']} | "
-        f"{action['execution_errors']} |"
-    )
-
-    mask = guardrail["mask"]
-    lines.extend(
-        [
-            "",
-            "## MASK Verification",
-            "",
-            "| Total | Correct | Evaluable | Accuracy | Evidence Unavailable | Execution Error |",
-            "|---:|---:|---:|---:|---:|---:|",
-            (
-                f"| {mask['total']} | {mask['correct']} | {mask['evaluable']} | "
-                f"{_format_rate(mask.get('accuracy'))} | {mask['unavailable']} | "
-                f"{mask['execution_errors']} |"
-            ),
-            "",
-            "## Failure Types",
-            "",
-        ]
-    )
-    failures = aggregation["top_failure_types"]
-    if not failures:
-        lines.append("No evaluation failures.")
-    else:
-        lines.extend(
-            [
-                "| Failure Type | Count | Owner |",
-                "|:---|---:|:---|",
-            ]
-        )
-        for failure in failures:
-            lines.append(
-                f"| {failure['failure_type']} | {failure['count']} | "
-                f"{failure['owner']} |"
-            )
-
-    lines.extend(["", "## Execution Errors", ""])
-    execution_errors = report.get("execution_errors", [])
-    if not execution_errors:
-        lines.append("No execution errors.")
-    else:
-        lines.extend(["| Case | Error Type | Message |", "|:---|:---|:---|"])
-        for error in execution_errors:
-            lines.append(
-                f"| {error.get('case_id', '')} | {error.get('error_type', '')} | "
-                f"{_escape_cell(error.get('message', ''))} |"
-            )
-
-    lines.extend(
-        [
-            "",
-            "## Quality Gate",
-            "",
-            "| Gate | Status | Actual | Threshold | Reason |",
-            "|:---|:---|---:|---:|:---|",
-        ]
-    )
-    for check in gate.get("checks", []):
-        lines.append(
-            f"| {check['gate_id']} | {check['status']} | "
-            f"{_format_value(check.get('actual'))} | "
-            f"{_format_value(check.get('threshold'))} | "
-            f"{_escape_cell(check.get('reason', ''))} |"
-        )
-    return "\n".join(lines) + "\n"
 
 
 def render_markdown(report: Mapping[str, Any]) -> str:
@@ -397,13 +225,11 @@ def render_markdown(report: Mapping[str, Any]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def _render_error_report(
-    report: Mapping[str, Any], title: str = "Agent Quality Report"
-) -> str:
+def _render_error_report(report: Mapping[str, Any]) -> str:
     error = report.get("preflight_error", {})
     return "\n".join(
         [
-            f"# {title}",
+            "# Agent Quality Report",
             "",
             "- Gate: **ERROR**",
             f"- Runner: `{report.get('runner', 'N/A')}`",

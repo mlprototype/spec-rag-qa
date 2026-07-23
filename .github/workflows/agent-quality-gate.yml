@@ -22,11 +22,6 @@ on:
         required: false
         default: false
         type: boolean
-      run_gateway_guardrail:
-        description: Run Guardrail evaluation against the approved Gateway endpoint
-        required: false
-        default: false
-        type: boolean
 
 permissions:
   contents: read
@@ -58,9 +53,7 @@ jobs:
         if: always()
         run: |
           rm -rf .artifacts/agent-quality
-          rm -rf .artifacts/guardrail-quality
           mkdir -p .artifacts/agent-quality
-          mkdir -p .artifacts/guardrail-quality
 
       - name: Run offline Fixture quality gate
         if: always()
@@ -86,31 +79,6 @@ jobs:
             .artifacts/agent-quality/report.json
             .artifacts/agent-quality/report.md
             .artifacts/agent-quality/run.log
-
-      - name: Run offline Guardrail Fixture quality gate
-        if: always()
-        env:
-          PYTHONPATH: src
-        shell: bash
-        run: |
-          set -o pipefail
-          python scripts/run_guardrail_evaluation.py \
-            --runner fixture \
-            --report-json .artifacts/guardrail-quality/report.json \
-            --report-markdown .artifacts/guardrail-quality/report.md \
-            2>&1 | tee .artifacts/guardrail-quality/run.log
-
-      - name: Upload Guardrail quality reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: guardrail-quality-reports-${{ github.run_attempt }}
-          if-no-files-found: warn
-          include-hidden-files: true
-          path: |
-            .artifacts/guardrail-quality/report.json
-            .artifacts/guardrail-quality/report.md
-            .artifacts/guardrail-quality/run.log
 
   real-agent-evaluation:
     name: Real ai-agent-rag Evaluation
@@ -254,59 +222,3 @@ jobs:
             .artifacts/agent-advanced/report.json
             .artifacts/agent-advanced/report.md
             .artifacts/agent-advanced/run.log
-
-  gateway-guardrail-evaluation:
-    name: Real Gateway Guardrail Evaluation
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_gateway_guardrail }}
-    runs-on: ubuntu-latest
-    environment: gateway-evaluation
-
-    steps:
-      - name: Check out spec-rag-qa
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: pip
-
-      - name: Install dependencies
-        run: python -m pip install -r requirements.txt
-
-      - name: Prepare fresh Gateway Guardrail artifact directory
-        if: always()
-        run: |
-          rm -rf .artifacts/guardrail-quality
-          mkdir -p .artifacts/guardrail-quality
-
-      - name: Run real Gateway Guardrail quality gate
-        if: always()
-        env:
-          GATEWAY_API_KEY: ${{ secrets.GATEWAY_API_KEY }}
-          GATEWAY_EVAL_ALLOWED_HOST: ${{ vars.GATEWAY_EVAL_ALLOWED_HOST }}
-          GATEWAY_EVAL_URL: ${{ vars.GATEWAY_EVAL_URL }}
-          PYTHONPATH: src
-        shell: bash
-        run: |
-          set -o pipefail
-          python scripts/run_guardrail_evaluation.py \
-            --runner http \
-            --gateway-url "$GATEWAY_EVAL_URL" \
-            --gateway-allowed-host "$GATEWAY_EVAL_ALLOWED_HOST" \
-            --timeout-seconds 30 \
-            --report-json .artifacts/guardrail-quality/real-gateway.json \
-            --report-markdown .artifacts/guardrail-quality/real-gateway.md \
-            2>&1 | tee .artifacts/guardrail-quality/real-gateway.log
-
-      - name: Upload real Gateway Guardrail reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: real-gateway-guardrail-reports-${{ github.run_attempt }}
-          if-no-files-found: warn
-          include-hidden-files: true
-          path: |
-            .artifacts/guardrail-quality/real-gateway.json
-            .artifacts/guardrail-quality/real-gateway.md
-            .artifacts/guardrail-quality/real-gateway.log
