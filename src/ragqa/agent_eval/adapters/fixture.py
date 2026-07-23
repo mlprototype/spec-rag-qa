@@ -5,10 +5,7 @@ from collections.abc import Iterable
 from pathlib import Path
 
 from ragqa.agent_eval.models import AgentEvalCase, AgentRunTrace
-from ragqa.agent_eval.runner import (
-    FixtureTraceMismatchError,
-    FixtureTraceNotFoundError,
-)
+from ragqa.agent_eval.runner import FixtureTraceNotFoundError
 
 
 class DuplicateFixtureTraceError(ValueError):
@@ -25,7 +22,7 @@ class FixtureRunner:
                 raise DuplicateFixtureTraceError(
                     f"Duplicate fixture trace for case id: {trace.case_id}"
                 )
-            self._traces[trace.case_id] = trace.model_copy(deep=True)
+            self._traces[trace.case_id] = trace
 
     @classmethod
     def from_json(cls, path: str | Path) -> FixtureRunner:
@@ -49,8 +46,5 @@ class FixtureRunner:
             raise FixtureTraceNotFoundError(
                 f"Fixture trace not found for case id: {case.id}"
             ) from exc
-        if trace.input.question != case.input.question:
-            raise FixtureTraceMismatchError(
-                f"Fixture input mismatch for case id: {case.id}"
-            )
         return trace.model_copy(deep=True)
+

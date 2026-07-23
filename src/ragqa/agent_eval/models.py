@@ -82,15 +82,8 @@ class ToolCallTrace(AgentEvalModel):
     duration_ms: NonNegativeFloat | None = None
 
 
-class CitationTrace(AgentEvalModel):
-    """Citation actually emitted by the Agent and its referenced source ID."""
-
-    citation_id: NonEmptyStr
-    source_id: NonEmptyStr
-
-
 class SourceTrace(AgentEvalModel):
-    """Source retrieved or otherwise exposed to the Agent during a run."""
+    """Source exposed to or cited by the Agent during a run."""
 
     source_id: NonEmptyStr
     title: NonEmptyStr | None = None
@@ -142,7 +135,6 @@ class AgentRunTrace(AgentEvalModel):
     input: AgentRunInput
     output: AgentRunOutput
     tool_calls: list[ToolCallTrace] = Field(default_factory=list)
-    citations: list[CitationTrace] = Field(default_factory=list)
     sources: list[SourceTrace] = Field(default_factory=list)
     guardrail: GuardrailTrace
     control: ControlTrace
@@ -168,3 +160,4 @@ class CaseEvaluationResult(AgentEvalModel):
     run_id: NonEmptyStr
     passed: bool
     checks: list[CheckResult] = Field(default_factory=list)
+

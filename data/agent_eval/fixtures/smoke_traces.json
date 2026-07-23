@@ -8,7 +8,7 @@
       "question": "パスワードの最小文字数を教えてください。"
     },
     "output": {
-      "answer": "パスワードは最小8文字です。[cite-password-policy]",
+      "answer": "パスワードは最小8文字です。",
       "query_type": "factual",
       "route": "retrieval",
       "confidence": 0.98,
@@ -26,12 +26,6 @@
           ]
         },
         "duration_ms": 12.5
-      }
-    ],
-    "citations": [
-      {
-        "citation_id": "cite-password-policy",
-        "source_id": "sample_spec.md#password"
       }
     ],
     "sources": [
@@ -83,7 +77,6 @@
       ]
     },
     "tool_calls": [],
-    "citations": [],
     "sources": [],
     "guardrail": {
       "triggered": true,
@@ -119,7 +112,7 @@
       "question": "登録済みメールアドレスで会員登録した場合は422ですか、409ですか。"
     },
     "output": {
-      "answer": "登録済みメールアドレスとの競合なので HTTP 409 Conflict です。[cite-signup] 422は要求の意味的な不正を表します。[cite-error-codes]",
+      "answer": "登録済みメールアドレスとの競合なので HTTP 409 Conflict です。422は要求の意味的な不正を表します。",
       "query_type": "comparison",
       "route": "retrieval",
       "confidence": 0.96,
@@ -138,16 +131,6 @@
           ]
         },
         "duration_ms": 19.4
-      }
-    ],
-    "citations": [
-      {
-        "citation_id": "cite-signup",
-        "source_id": "sample_spec_v2.md#signup"
-      },
-      {
-        "citation_id": "cite-error-codes",
-        "source_id": "error_code_reference.md#conflict"
       }
     ],
     "sources": [

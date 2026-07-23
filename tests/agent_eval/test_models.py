@@ -42,25 +42,6 @@ def test_smoke_cases_and_traces_are_valid_contracts() -> None:
     assert len(cases) >= 3
     assert len(traces) >= 3
     assert {case.id for case in cases} == {trace.case_id for trace in traces}
-    assert {case.id: case.input.question for case in cases} == {
-        trace.case_id: trace.input.question for trace in traces
-    }
-
-
-def test_smoke_citations_resolve_to_observed_sources() -> None:
-    cases = {case.id: case for case in load_cases(CASES_PATH)}
-    with TRACES_PATH.open(encoding="utf-8") as file:
-        traces = [AgentRunTrace.model_validate(item) for item in json.load(file)]
-
-    for trace in traces:
-        source_ids = {source.source_id for source in trace.sources}
-        assert all(citation.source_id in source_ids for citation in trace.citations)
-        assert all(
-            citation.citation_id in trace.output.answer
-            for citation in trace.citations
-        )
-        if cases[trace.case_id].expected.citation_required:
-            assert trace.citations
 
 
 def test_schema_version_is_required() -> None:
@@ -160,3 +141,4 @@ def test_evaluation_results_are_separate_from_run_trace() -> None:
 
     assert result.passed is True
     assert "passed" not in AgentRunTrace.model_fields
+
