@@ -33,8 +33,6 @@
 
 カテゴリ分布は direct 3、definition 2、retrieval 2、retrieval_complex 3、structured_query 4、compare 3、insufficient_evidence 2、fallback 1です。definition/retrievalの合計は4件です。
 
-Stability監視用に `agent-direct-greeting`、`agent-definition-session-timeout`、`agent-structured-orders-q1`、`agent-compare-password-policies`、`agent-fallback-search-timeout` を `repeat=3` としています。既存の決定論的Gateは各ケースを1回評価し、高度評価CLIだけがrepeat回数を使用します。
-
 ## Runnerの利用方法
 
 以下はリポジトリルートで実行します。Fixtureと保存TraceにはAPIキーが不要です。

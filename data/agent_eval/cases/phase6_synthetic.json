@@ -36,7 +36,7 @@
       "max_latency_ms": 300,
       "max_cost_usd": 0.02
     },
-    "repeat": 3,
+    "repeat": 1,
     "tags": [
       "synthetic",
       "public",
@@ -202,7 +202,7 @@
       "max_latency_ms": 1000,
       "max_cost_usd": 0.02
     },
-    "repeat": 3,
+    "repeat": 1,
     "tags": [
       "synthetic",
       "public",
@@ -726,7 +726,7 @@
       "answer_format": {"format_type": "natural_language"}
     },
     "budgets": {"max_latency_ms": 1200, "max_cost_usd": 0.02},
-    "repeat": 3,
+    "repeat": 1,
     "tags": ["synthetic", "public", "structured_query", "natural_language"]
   },
   {
@@ -942,7 +942,7 @@
       "max_latency_ms": 1800,
       "max_cost_usd": 0.02
     },
-    "repeat": 3,
+    "repeat": 1,
     "tags": [
       "synthetic",
       "public",
@@ -1378,7 +1378,7 @@
       "max_latency_ms": 2200,
       "max_cost_usd": 0.02
     },
-    "repeat": 3,
+    "repeat": 1,
     "tags": [
       "synthetic",
       "public",

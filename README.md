@@ -412,20 +412,6 @@ PYTHONPATH=src python scripts/run_agent_evaluation.py \
 
 合成Fixtureは契約回帰を決定論的に検出するためのもので、LLMの揺らぎ、実トラフィック比率、実ネットワークlatency、全Tool、認証・再試行、Citation内容の意味的支持を代表しません。本番判断では匿名化した実質問、実Trace、人手判定、障害注入、セキュリティ評価を追加してください。ケース一覧、Runner契約、事前検査、詳細な限界は [docs/agent_evaluation_dataset.md](docs/agent_evaluation_dataset.md) を参照してください。
 
-### 高度評価（monitor-only）
-
-Groundedness、repeat-run Stability、version付き価格表によるCostは、既存PR Gateから分離した高度評価CLIで実行します。APIキーなしのMock Judgeはschema、retry、集計、report経路の確認用です。
-
-```bash
-PYTHONPATH=src python scripts/run_agent_advanced_evaluation.py \
-  --runner fixture \
-  --judge mock
-```
-
-出力は `.artifacts/agent-advanced/report.json` と `report.md` です。GroundednessとAnswer Semantic Consistencyは独立Judgeを使い、Judge model／prompt version／実行日時を保存します。Tool Evidenceは明示的なdeterministic Structured Query factsだけを許可するdefault denyです。Costは [agent_pricing.json](config/agent_pricing.json) の `pricing_version` とmodel別token単価を記録し、usageまたは実model IDの欠損を `N/A` とします。Agentのtarget名をmodel名として価格付けしません。
-
-外部JudgeはPRでは実行しません。手動 `Advanced Agent Monitoring` JobはGitHub Environment `agent-evaluation` の承認後だけ起動し、URL・model・許可hostをVariables、API keyをSecretから取得します。外部Judgeには質問、回答、Source snippet、許可されたTool factsが送信されるため、送信先とデータ取扱条件の承認が必要です。schema、計算式、信頼境界、HTTP契約、既知の限界は [Phase 6 高度Agent評価](docs/agent_advanced_evaluation.md) を参照してください。
-
 ## 既知の制限
 
 現在の品質管理は有効ですが、Goodhart's Law を避けるには「測っている指標が真の品質を完全には代表しない」ことを明示しておく必要があります。以下の制約は、既知のリスクとして管理対象に含めるべきものです。

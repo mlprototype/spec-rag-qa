@@ -17,11 +17,6 @@ on:
         required: false
         default: main
         type: string
-      run_advanced_monitoring:
-        description: Run monitor-only Groundedness, Stability, and Cost evaluation
-        required: false
-        default: false
-        type: boolean
 
 permissions:
   contents: read
@@ -146,79 +141,3 @@ jobs:
             .artifacts/agent-quality/real-agent.json
             .artifacts/agent-quality/real-agent.md
             .artifacts/agent-quality/real-agent.log
-
-  advanced-agent-monitoring:
-    name: Advanced Agent Monitoring
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_advanced_monitoring }}
-    runs-on: ubuntu-latest
-    environment: agent-evaluation
-
-    steps:
-      - name: Check out spec-rag-qa
-        uses: actions/checkout@v4
-
-      - name: Check out ai-agent-rag
-        uses: actions/checkout@v4
-        with:
-          repository: mlprototype/ai-agent-rag
-          ref: ${{ inputs.ai_agent_ref }}
-          path: ai-agent-rag
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: pip
-          cache-dependency-path: |
-            requirements.txt
-            ai-agent-rag/requirements.txt
-
-      - name: Install dependencies
-        run: |
-          python -m pip install -r requirements.txt
-          python -m pip install -r ai-agent-rag/requirements.txt
-
-      - name: Prepare fresh advanced monitoring artifact directory
-        if: always()
-        run: |
-          rm -rf .artifacts/agent-advanced
-          mkdir -p .artifacts/agent-advanced
-
-      - name: Run monitor-only advanced evaluation
-        if: always()
-        env:
-          AGENT_EVAL_JUDGE_API_KEY: ${{ secrets.AGENT_EVAL_JUDGE_API_KEY }}
-          ADVANCED_JUDGE_ALLOWED_HOST: ${{ vars.AGENT_EVAL_JUDGE_ALLOWED_HOST }}
-          ADVANCED_JUDGE_MODEL: ${{ vars.AGENT_EVAL_JUDGE_MODEL }}
-          ADVANCED_JUDGE_URL: ${{ vars.AGENT_EVAL_JUDGE_URL }}
-          LANGCHAIN_TRACING_V2: "false"
-          LANGSMITH_TRACING: "false"
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          PYTHONPATH: src
-        shell: bash
-        run: |
-          set -o pipefail
-          python scripts/run_agent_advanced_evaluation.py \
-            --runner subprocess \
-            --subprocess-command "python scripts/run_agent_trace.py" \
-            --subprocess-cwd ai-agent-rag \
-            --timeout-seconds 60 \
-            --judge http \
-            --judge-url "$ADVANCED_JUDGE_URL" \
-            --judge-model "$ADVANCED_JUDGE_MODEL" \
-            --judge-allowed-host "$ADVANCED_JUDGE_ALLOWED_HOST" \
-            --report-json .artifacts/agent-advanced/report.json \
-            --report-markdown .artifacts/agent-advanced/report.md \
-            2>&1 | tee .artifacts/agent-advanced/run.log
-
-      - name: Upload advanced monitoring reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: agent-advanced-monitoring-${{ github.run_attempt }}
-          if-no-files-found: warn
-          include-hidden-files: true
-          path: |
-            .artifacts/agent-advanced/report.json
-            .artifacts/agent-advanced/report.md
-            .artifacts/agent-advanced/run.log
