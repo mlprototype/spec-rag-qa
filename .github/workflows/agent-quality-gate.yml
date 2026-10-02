@@ -133,7 +133,7 @@ jobs:
         run: python -m pytest tests/agent_eval -q
 
       - name: Prepare fresh Agent quality artifact directory
-        if: ${{ always() && steps.scope.outputs.run_quality_gate == 'true' }}
+        if: always() && steps.scope.outputs.run_quality_gate == 'true'
         run: |
           rm -rf .artifacts/agent-quality
           rm -rf .artifacts/guardrail-quality
@@ -141,7 +141,7 @@ jobs:
           mkdir -p .artifacts/guardrail-quality
 
       - name: Run offline Fixture quality gate
-        if: ${{ always() && steps.scope.outputs.run_quality_gate == 'true' }}
+        if: always() && steps.scope.outputs.run_quality_gate == 'true'
         env:
           PYTHONPATH: src
         shell: bash
@@ -154,7 +154,7 @@ jobs:
             2>&1 | tee .artifacts/agent-quality/run.log
 
       - name: Upload Agent quality reports
-        if: ${{ always() && steps.scope.outputs.run_quality_gate == 'true' }}
+        if: always() && steps.scope.outputs.run_quality_gate == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: agent-quality-reports-${{ github.run_attempt }}
@@ -166,7 +166,7 @@ jobs:
             .artifacts/agent-quality/run.log
 
       - name: Run offline Guardrail Fixture quality gate
-        if: ${{ always() && steps.scope.outputs.run_quality_gate == 'true' }}
+        if: always() && steps.scope.outputs.run_quality_gate == 'true'
         env:
           PYTHONPATH: src
         shell: bash
@@ -179,7 +179,7 @@ jobs:
             2>&1 | tee .artifacts/guardrail-quality/run.log
 
       - name: Upload Guardrail quality reports
-        if: ${{ always() && steps.scope.outputs.run_quality_gate == 'true' }}
+        if: always() && steps.scope.outputs.run_quality_gate == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: guardrail-quality-reports-${{ github.run_attempt }}
