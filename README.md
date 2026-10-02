@@ -1,633 +1,204 @@
-# 仕様書QA向けHybrid RAG・AI品質評価基盤（spec-rag-qa）
+# 仕様書QA向けHybrid RAG・Retrieval品質管理（spec-rag-qa）
 
-> 仕様書をHybrid Searchで検索して根拠付き回答を生成し、Retrieval・Agent・Guardrailの品質をBaseline比較とCI Gateで継続管理するシステム
+仕様書をHybrid Retrievalで検索し、参照元と検証結果を伴う回答を生成するPythonシステムです。**Retrieval品質をLLM回答評価から分離し、Ground Truth・Baseline・Metrics・CI Quality Gateで再現可能な評価として継続管理する**ことを中心に設計しています。
 
-`spec-rag-qa` は、社内仕様書、設計書、業務マニュアルなどに対する質問へ、関連箇所と引用元を提示しながら回答するHybrid RAGシステムです。文書のIngest／Chunkingから検索、LLMによる回答生成・検証、CLI／APIでの応答までをこのリポジトリ内に実装しています。
+## Problem — 解決する課題
 
-検索では、FAISSによるベクトル検索とBM25によるキーワード検索を、日本語トークナイズ、Exact Match Boost、RRF Fusionで統合します。自然文だけでなく、エラーコード、API名、識別子を含む技術文書からも回答コンテキストとCitationを組み立てます。
+RAGは、Embedding、Chunking、検索候補数、ランキングを変えるだけで検索品質が動きます。回答の読みやすさだけで改善を判断すると、必要な根拠の取りこぼしや検索順位の悪化を見逃し、Retrievalの問題とLLM生成の問題を混同します。
 
-Retrieval品質を感覚ではなく継続的に管理するため、Ground Truth、Baseline、Recall@K、MRR、Failure Rate、レイテンシ、SLO Gate、Grid Searchを組み込んでいます。評価条件はQuality Contractとして固定し、検索変更を同じ基準で比較します。
+このリポジトリは、検索変更を同じ評価条件で測定・比較し、許容範囲を超える回帰をCIで検出するために作りました。検索結果とケース別の指標を保存し、「どの質問で、どの根拠を取得できなかったか」を追えるようにします。
 
-さらに、このRetrieval品質管理の設計を、Agentic RAGのRoute／Tool／Citation／Task Successと、LLM GatewayのGuardrailへ拡張しました。評価契約、Fixture、Baseline、レポート、Quality Gateを本リポジトリに集約し、Offline PR Gateと実システム・外部Judgeを使う手動評価を分離しています。
+仕様書、設計書、業務マニュアルなどのQAを検証対象としています。
 
-## 関連プロジェクトと設計上の位置づけ
+## What This System Does
 
-本リポジトリは、生成AIを業務システムへ安全に導入するための
-「品質保証・動的制御・運用統治」からなる3層アーキテクチャのうち、
-**品質保証レイヤー** を担います。
+- **文書の検索基盤**：Markdown／テキストをChunkに分割し、FAISSとBM25のindex、文書hashを含むmanifestを生成します。
+- **Hybrid Retrieval**：ベクトル検索と日本語BM25検索をRRFで統合し、エラーコード・API名・識別子にはExact Match Boostを適用します。
+- **仕様書QA**：取得した根拠をLLMへ渡し、回答とEvidence Checkを別々に返します。CLIとFastAPIから同じQA処理を利用できます。
+- **独立したRetrieval評価**：LLMを呼ばず、Ground Truthに対するRecall@K、MRR、Failure Rate、Latencyを測定します。
+- **Regression Detection**：保存済みBaselineからSLOを計算し、未達時に評価を異常終了させ、GitHub Actionsを失敗させます。
+- **SLO制約下の探索**：2段階Grid Searchで検索設定を比較し、試行結果・選択された設定をJSON／Markdownに保存します。
 
-| プロジェクト | 主な責務 |
-|---|---|
-| **本リポジトリ（spec-rag-qa）** | **仕様書QA向けHybrid RAG、Retrieval品質管理、共通AI品質評価** |
-| [Agentic RAG with Control Plane](https://github.com/mlprototype/ai-agent-rag) | 動的制御、Agent実行 |
-| [Policy-Aware Multi-LLM Gateway](https://github.com/mlprototype/policy-aware-llm-gateway) | 運用統治、Guardrail実装 |
+## Architecture
 
-`spec-rag-qa` は検証用Hybrid RAG本体を持つと同時に、`ai-agent-rag` をAgent評価の実行対象、`policy-aware-llm-gateway` をGuardrail評価の実行対象として接続します。評価ケース、Fixture、保存Trace、Baseline、レポート、Quality Gateは本リポジトリで管理します。
-
-## 解決する課題
-
-- Retrieval 改善のたびに品質が揺れる問題
-- 「それっぽく良くなった」に依存した主観的な判断
-- 変更前後を同じ条件で比較できない問題
-- 検索劣化を見逃したまま CI/CD を通してしまう問題
-- Retrieval の問題と LLM 生成の問題が混同される問題
-
-Retrieval品質管理を起点に、共通AI品質評価では次の課題も扱います。
-
-- AgentのRoute、Tool、Citation、回答形式の回帰を検出しにくい問題
-- Guardrailの過検知と検知漏れを同じ基準で比較しにくい問題
-- 実システムや外部JudgeをPRごとに実行した場合の再現性、コスト、Secret管理の問題
-- 評価結果がレポートだけで終わり、CIのQuality Gateへ接続されない問題
-- Criticalな失敗が平均値に埋もれる問題
-
-本システムは、Retrieval 評価を LLM 回答評価から分離し、検索品質そのものを機械的に測定できるようにします。  
-その結果、品質回帰防止、比較可能性、安全制約付き最適化を一つの運用ループとして扱えます。
-
-Agent／Guardrail評価でも、実行系をRunner／Adapterで評価ロジックから分離し、Critical指標の絶対Gate、review済みBaselineとの比較、分母0の `N/A` を明示的に扱います。
-
-## システム概要
-
-RAG の改善は、チャンク設計、BM25 設定、ハイブリッド検索の重み付けを少し変えるだけでも品質が動きます。  
-一方で、評価が属人的だと「良くなったのか」「安全に悪化していないか」を継続的に判断できません。
-
-このプロジェクトは、Retrievalを固定条件で評価できるGround TruthとBaselineを持ち、Recall@K、MRR、Failure Rate、レイテンシを用いて検索品質を継続管理します。
-そのうえで、SLO を満たす変更だけを CI で通し、SLO 制約の中で Grid Search により改善候補を探索できるようにしています。
-
-この品質管理ループを拡張し、Agentの決定論的評価、外部Judgeを利用できるmonitor-only高度評価、Gateway Guardrail評価も提供します。Fixtureを使うOffline PR Gateと、実Agent／実Gatewayを接続する手動Jobは役割を分離しています。
-
-## 想定ユースケース
-
-#### 仕様書・社内文書QAにおけるRAG検索品質の継続的な管理
-
-社内の仕様書、業務マニュアル、FAQ、設計書などを対象にしたRAG型QAシステムを運用するケースを想定。
-
-RAGアプリケーションでは、回答品質の前段にあるRetrieval品質が重要になる。  
-しかし、Embeddingモデル、Chunk分割、検索パラメータ、ランキングロジックを変更した際に、検索精度が改善したのか、劣化したのかを人手で判断するのは難しい。
-
-このシステムでは、Ground Truthを用いた評価データと、Recall@K / MRR / SLOによる定量評価により、RAG検索品質を継続的に測定・比較・管理する。
-
-## アーキテクチャ
-
-このシステムは、RAG の回答生成そのものよりも、Retrieval 品質を継続的に測定・比較・最適化するための品質管理ループを中心に設計しています。
-
-### データフロー
-
-入力文書は index 化され、質問に対して Hybrid Retriever が contexts / citations を返します。  
-通常の質問応答では contexts が LLM 生成・検証へ進み、品質管理では citations と latency が Ground Truth / Baseline と照合され、SLO Gate、CI、Grid Search へ流れます。
+QAの実行経路と品質評価の経路を分けています。検索エンジンは根拠を取得し、評価処理はその結果をGround Truthと照合します。Grid Searchは同じ測定・SLOを使って候補を選びます。
 
 ```mermaid
 flowchart LR
-  DOC["Docs"] --> ING["Ingest / Chunking"]
+  DOC["Markdown / Text"] --> ING["Ingest / Chunking"]
   ING --> IDX["FAISS / BM25 Index"]
+  IDX --> RET["Hybrid Retriever<br/>Exact Match Boost + RRF"]
+  Q["Question"] --> RET
+  RET --> CTX["Contexts / Sources"]
+  CTX --> LLM["LLM Generate / Verify"]
+  LLM --> ANS["AnswerResult<br/>CLI / API"]
 
-  Q["Question"] --> RET["Hybrid Retriever"]
-  IDX --> RET
-
-  RET --> CTX["contexts / citations"]
-  CTX --> GEN["LLM Generate / Verify"]
-  GEN --> ANS["AnswerResult"]
-
-  RET --> DET["citations + latency"]
+  RET --> OBS["Citations + Retrieval Latency"]
   GT["Ground Truth"] --> MET["Retrieval Metrics"]
-  DET --> MET
-  BL["Baseline"] --> SLO["baseline-relative SLO Gate"]
-  MET --> SLO
-
-  SLO --> CI["PR / CI Gate"]
-  SLO --> GS["Nightly Grid Search"]
-  GS --> CFG["Best Config"]
-  CFG --> RET
+  OBS --> MET
+  MET --> SLO["Baseline-relative SLO"]
+  BL["Baseline"] --> SLO
+  SLO --> CI["CI Quality Gate"]
+  GS["Scheduled / Manual Grid Search"] -->|候補設定で検索| RET
+  SLO -->|候補の合否| GS
+  GS --> REP["Trial Reports / Best Config"]
 ```
 
-このHybrid RAGのRetrieval評価を起点として、後続のAgent評価では実行Traceを、Guardrail評価では検知結果とActionを各評価契約へ接続しています。すべてを同一schemaへ統合せず、Agent／Guardrail系だけが `AgentRunTrace` 系を共有します。詳細はREADME後半の「共通AI品質評価基盤」を参照してください。
+検索・測定・探索を分離する境界は、`id`、`citations`、`latency_ms` を持つ観測データです。測定関数はFAISSやBM25の内部実装を参照しません。
 
-### 責務分離
+## Key Engineering Decisions
 
-上の図は実行時と評価時のデータフローを示しています。実装上は、検索、測定、最適化、評価条件の固定を次のように分離しています。
+| Decision | Why | Trade-off |
+|---|---|---|
+| **Retrieval評価とLLM回答評価を分離** | 検索結果は `expected_sources` と機械的に照合し、回答は `expected_verdict`／`assertion` で別に判定する。検索missと生成・判定の揺らぎを切り分ける。 | Retrievalの改善だけでは最終回答の正しさを保証できず、回答評価も必要。 |
+| **Quality Contractで比較条件を固定** | Ground Truth、Baseline、コーパス、生成SEEDを保存し、比較の前提を追跡する。 | ケースや基準を更新する際は比較条件を見直す必要があり、固定データは評価範囲を限定する。 |
+| **列挙可能なGrid Searchと試行レポートを採用** | 探索候補と選択規則を明示し、試行別の設定・指標・SLO適合可否を保存する。候補を選んだ理由を後から検証できるようにする。 | 探索コストが増える。実測Latencyは変動するため、結果や選択候補の完全一致は保証しない。 |
+| **Baseline-relative SLOで回帰を検出** | Recall@5、MRR、Failure Rateの3条件を同時に判定し、保存済み基準からの劣化をCIで検出する。 | Baselineや閾値の妥当性はレビューが必要。一定の劣化を許容し、評価ごとの最良値を自動でBaselineへ昇格させる仕組みはない。 |
 
-```mermaid
-flowchart TB
-  subgraph L3["Layer 3: 最適化・自動調整層"]
-    GS["Grid Search"]
-    MR["多目的ランキング"]
-    EL["SLO Eligibility"]
-  end
+## Evaluation / Quality Control
 
-  subgraph L2["Layer 2: 測定・ゲート層"]
-    RM["retrieval_metrics"]
-    SG["SLO 判定"]
-    CI["CI/CD 統合"]
-  end
+### Ground Truth・Baseline・比較条件
 
-  subgraph L1["Layer 1: 検索エンジン層"]
-    IN["Ingest / Chunking"]
-    FA["FAISS"]
-    BM["BM25"]
-    EX["ExactMatchBoost"]
-    RF["RRF Fusion"]
-    AQ["Ask / API / Answer Context"]
-  end
+拡張Retrievalベンチマークは、**15文書の合成コーパスと25ケース**です。基本的な事実確認、言い換え、文書横断、曖昧な質問、誤誘導など8種の質問タイプを含みます。
 
-  subgraph QC["Quality Contract 層"]
-    GT["Ground Truth"]
-    BL["Baseline"]
-    SD["SEED"]
-  end
+- [Ground Truth](data/eval/ground_truth_phase0_expanded.json) は質問・正解ソース・回答判定条件を定義します。正解ソースがある20ケースをRetrieval精度の分母とし、残り5ケースはRecall／MRRの計算対象にしません。
+- [Vector-only Baseline](data/eval/phase0_vector_baseline_expanded.json) は比較基準です。生成スクリプトの `SEED=20260223`、Embeddingモデル名、取得件数、ケース別結果も保存します。
+- Retrieval評価前に、Ground Truthが期待する `doc_id` がindexに存在するかを検査します。コーパスと正解データの取り違えを、検索品質の劣化として扱わないためです。
 
-  GS --> RM
-  MR --> RM
-  EL --> SG
-  RM --> RF
-  SG --> RF
-  RF --> BM
-  RF --> FA
-  EX --> BM
-  AQ --> RF
-  IN --> FA
-  IN --> BM
+**Quality Contract**は、この評価条件を固定して比較可能性を守る枠組みです。同じコーパス・Ground Truth・モデル・設定で比較し、条件を変えた実験はその差を明示する必要があります。
 
-  GS -.参照.-> GT
-  RM -.参照.-> GT
-  SG -.参照.-> BL
-  IN -.参照.-> SD
-```
+### 何を測定するか
 
-各層の責務と主な実装要素は次の通りです。
+| 指標 | この実装での定義・用途 |
+|---|---|
+| **Recall@K（K=1, 5）** | 上位K件に正解ソースが**1件以上**含まれるケースの割合。複数の正解ソースをすべて取得した割合ではありません。 |
+| **MRR** | 最初の正解ソースの順位の逆数を平均。取得結果に正解がなければ、そのケースは0。 |
+| **Failure Rate** | `1 − Recall@5`。上位5件で根拠を取得できなかった割合であり、APIのエラー率ではありません。 |
+| **Latency** | Retrieval専用評価では、クエリのEmbeddingと検索を含む `retrieve()` の時間を測定し、p50／p95／平均を記録。モデル・indexの初期ロードやLLM生成時間は含みません。 |
 
-| 層 | 責務 | 主な実装要素 |
-|:---|:---|:---|
-| Layer 1 | 文書を index 化し、Hybrid Retrieval と回答コンテキスト生成を行う | `src/ragqa/ingest.py`、`src/ragqa/hybrid_retriever.py`、`src/ragqa/bm25_store.py`、`src/ragqa/service.py` |
-| Layer 2 | citations と latency を測定し、指標化してゲート判定する | `src/ragqa/retrieval_metrics.py`、`scripts/run_phase4_retrieval_eval.py`、`.github/workflows/ragqa-quality-gate.yml` |
-| Layer 3 | SLO 制約下で候補を探索し、最良設定を決める | `scripts/run_phase5_grid_search.py`、`ranking_key()`、`is_eligible()` |
-| Quality Contract | 比較条件を固定し、実験と評価の不変式を与える | `data/eval/ground_truth*.json`、`data/eval/phase0_vector_baseline*.json`、`SEED=20260223` |
+現在の拡張Ground Truthは文書単位です。検索結果がChunk単位でも、期待する文書のいずれかに一致すればhitになります。Chunkを指定する参照形式にも測定関数は対応しますが、現データではChunk単位の正解位置を検証していません。
 
-Layer 1 には検索エンジン層を直接利用する CLI / API エンドポイント向けの回答コンテキスト生成も含めています。  
-Layer 2 は意図的に Layer 1 の内部アルゴリズムを知りません。`compute_retrieval_metrics()` が受け取るのは `id`、`citations`、`latency_ms` を持つ details リストであり、FAISS、BM25、RRF の実装詳細には依存しないため、検索アルゴリズムの変更と品質判定の基準を疎結合に保てます。
+LLM回答評価は [ragqa.evaluate](src/ragqa/evaluate.py) が別に実行します。回答のVerdictとAssertionを判定し、失敗分類・担当領域・改善候補をJSONレポートとCSV履歴へ記録します。このレポートのLatencyはQA全体の処理時間なので、Retrieval専用評価のLatencyと区別します。
 
-## 設計思想
+### SLO・CI Quality Gate
 
-このシステムの設計思想は、比較可能性と監査可能性を優先することにあります。主要な設計判断は次の 4 点です。
+[Retrieval Gate](scripts/run_phase4_retrieval_eval.py) の既定閾値は次の通りです。3条件をすべて満たす必要があります。
 
-#### 1. Retrieval評価とLLM評価の完全分離（関心事の分離）
-* **アプローチ**: `expected_sources` による検索エンジン性能（インフラ層）の機械評価と、`expected_verdict / assertion` による回答品質（アプリケーション層）のLLM評価を明確に分離。
-* **トレードオフ**: 検索品質のデグレードと、最終的なLLM応答品質との間の定性的な因果関係の切り分けは、上位レイヤーのベンチマーク環境に委ねる設計を選択。
+| 条件 | 既定値 | 保存済みBaselineから算出した閾値 |
+|---|---|---|
+| Recall@5 | Baselineの90%以上 | `≥ 0.72` |
+| MRR | Baselineの90%以上 | `≥ 0.40275` |
+| Failure Rate | Baselineの120%以下 | `≤ 0.24` |
 
-#### 2. 3層構造 × Quality Contract による疎結合設計（非依存性の担保）
-* **アプローチ**: 測定レイヤーは `citations`（参照ソース）と `latency`（応答速度）のメタデータのみを監視して合否を判定。背後の検索アルゴリズムやハイパーパラメータの具体的実装を直接参照しない設計。
-* **トレードオフ**: レイヤー間の結合度を極限まで下げる引き換えとして、層間契約（Interface）の定義および管理コストを許容。
+比率は環境変数で変更できます。Baselineが存在しない場合、Retrieval Gateは絶対閾値へfallbackします。Grid SearchはBaselineを必須とします。**RetrievalのLatencyは現在SLOの合否条件に含まれません。**
 
-#### 3. 監査証跡を重視した決定論的 Grid Search の採用（再現性の担保）
-* **アプローチ**: ベイズ最適化（Bayesian Optimization）などの確率的探索をあえて避け、設定した全探索点を決定論的に評価。CI/CDプロセスにおいて、いつ、どのパラメータで、なぜそのスコアが出たかの完全な監査証跡（Audit Trail）を保持。
-* **トレードオフ**: 過去の履歴に依存する適応型探索（履歴依存探索）と比較し、パラメータ空間の探索における計算効率（時間・コスト）の劣後を許容。
+Baselineを明示的に更新すると次回の閾値も再計算されますが、通常のRetrieval評価やGrid SearchはBaselineを自動更新しません。SLOは設定した基準に対する回帰検出であり、毎回の改善を要求する条件ではありません。
 
-#### 4. baseline-relative SLO による品質ラチェット機構（継続的向上の自動化）
-* **アプローチ**: 絶対値による閾値管理ではなく、過去の最良スコア（Baseline）の更新に追随して自動的に合格基準が引き上がる「品質ラチェット機構」を導入。
-* **トレードオフ**: システム性能向上に伴うSLOの自動厳格化と引き換えに、意図的なベースライン更新・リセット時における明確な運用フロー（ガバナンス）の追加を許容。
+| Workflow | 実行条件 | 品質管理上の役割 |
+|---|---|---|
+| [RAG Quality Gate](.github/workflows/ragqa-quality-gate.yml) | `main` 向けPR、`main` へのpush、手動 | Unit tests → 拡張コーパスのRetrieval Gate → LLM回答評価を直列実行。回答評価後のRetrieval monitorも実行し、レポートをartifactへ保存。 |
+| [Grid Search](.github/workflows/phase5-grid-search.yml) | 日次schedule、手動 | SLOに適合する設定候補を探索し、試行レポート・Best Configをartifactへ保存。 |
 
+検索変更による回帰は、Ground Truth・Baseline・SLOを組み合わせたCI失敗として検出します。PRのマージを必須チェックで制限するには、GitHub側のbranch protection／ruleset設定が別途必要です。
 
-## 技術スタック
+Retrieval GateはLLMを呼びません。一方、RAG Quality Gateの後段にある回答評価には `OPENAI_API_KEY` が必要です。両者の失敗は、検索側のSLO違反と回答側の判定失敗として分けて確認できます。
 
-| カテゴリ | 技術 | 概要 / 役割 |
-|:---|:---|:---|
-| **言語** | Python | システム開発、評価スクリプトの実装 |
-| **検索ライブラリ** | FAISS (`faiss-cpu`) | 密ベクトル検索（Layer 1） |
-| **検索統合** | BM25、Exact Match Boost、RRF Fusion | キーワード検索とベクトル検索の順位統合（Layer 1） |
-| **日本語解析** | `fugashi`, `unidic-lite` | 日本語トークナイザーの実装（Layer 1） |
-| **モデル・埋め込み** | `sentence-transformers` | テキストのベクトル埋め込み（Layer 1） |
-| **LLM統合** | OpenAI API (`openai`) | 回答生成・検証、RAG回答評価 |
-| **Webフレームワーク** | FastAPI, Uvicorn | APIサーバーの提供 |
-| **Agent評価** | Pydantic、JSON Schema、PyYAML | Trace契約、事前検査、集計、設定ベースのQuality Gate |
-| **Trace／Adapter** | Fixture、JSON Trace、Subprocess | 保存結果と実Agentを評価契約へ正規化 |
-| **LLM Judge** | Mock／provider-neutral HTTP (`httpx`) | Groundedness、Semantic Consistency、Stabilityの評価 |
-| **Guardrail評価** | 共通 `AgentRunTrace.guardrail` | PII／Injection検知、Action、MASK証跡の評価 |
-| **レポート** | JSON、Markdown | Agent／Guardrail評価結果とGate判定の保存 |
-| **テスト・評価** | pytest | Retrieval、Agent、Guardrail評価ロジックのテスト |
-| **CI/CD** | GitHub Actions | Offline PR Gate、手動実システム評価、Nightly Grid Search |
-| **設定管理** | YAML、JSON | Gate閾値、Baseline、Judge／pricing versionの追跡 |
-| **トラッキング** | LangSmith (`langsmith`) | 評価結果・トレースの可視化 |
+### 保存済みEvidenceとGrid Search
 
-## Phase 進化
+リポジトリに保存された同じ拡張ベンチマークの結果は次の通りです。今回の数値は保存済みartifactの値で、実行環境を揃えた再測定値ではありません。
 
-このシステムの Phase は、機能追加の履歴というより、比較の信頼性を段階的に強化してきた履歴です。
+| 保存済み結果 | Recall@1 | Recall@5 | MRR | Failure Rate |
+|---|---:|---:|---:|---:|
+| [Vector-only Baseline](data/eval/phase0_vector_baseline_expanded.json) | 0.30 | 0.80 | 0.4475 | 0.20 |
+| [Hybrid Retrieval Gate](data/eval/phase4_hybrid_retrieval_report.json) | 0.60 | 0.90 | 0.7000 | 0.10 |
+| [Grid Searchの選択候補](data/eval/phase5_best_config.json) | 0.60 | 0.90 | 0.6908 | 0.10 |
 
-```mermaid
-flowchart LR
-  P0["Phase 0<br/>Vector-only Baseline 確立"] --> P12["Phase 1/2<br/>BM25 / 日本語トークナイザ"] --> P3["Phase 3<br/>ExactMatchBoost の定量検証"] --> P4["Phase 4<br/>SLO ゲートの CI/CD 統合"] --> P5["Phase 5<br/>安全制約付き最適化（Grid Search）"] --> P6["Phase 6<br/>Agent・Guardrail共通評価基盤"]
-```
+この評価セットでは、保存済みHybrid結果がVector-only Baselineより高いRecall@5／MRRを示しています。実コーパスでの改善や、全パラメータ空間の最適性を示すものではありません。
 
-| Phase | 目的 | 主要成果物 |
-|:---|:---|:---|
-| Phase 0 | 比較の起点となる Vector-only baseline を固定する | `scripts/run_phase0_expanded_baseline.py`、`data/eval/phase0_vector_baseline_expanded.json`、`data/eval/ground_truth_phase0_expanded.json` |
-| Phase 1/2 | スパース検索と日本語トークナイズを加え、比較対象の検索基盤を増やす | `src/ragqa/bm25_store.py`、`src/ragqa/tokenizer_ja.py`、`tests/test_bm25.py`、`tests/test_tokenizer.py` |
-| Phase 3 | exact match boost が Recall@5 に効くかを定量で確認する | `scripts/run_phase3_boost_verification.py`、`data/eval/phase3_boost_verification.json` |
-| Phase 4 | baseline-relative SLO を CI/CD に接続し、回帰を自動停止する | `scripts/run_phase4_retrieval_eval.py`、`.github/workflows/ragqa-quality-gate.yml` |
-| Phase 5 | SLO を守ったまま探索空間を走査し、最良設定を選ぶ | `scripts/run_phase5_grid_search.py`、`.github/workflows/phase5-grid-search.yml`、`data/eval/phase5_best_config.json` |
-| Phase 6 | 共通Trace／評価契約へFixture・保存Trace・実システムRunnerを接続し、Agent品質、monitor-only高度評価、Guardrailをレポート・Baseline比較・CI Gateへ統合する | `src/ragqa/agent_eval/`、`scripts/run_agent_evaluation.py`、`scripts/run_agent_advanced_evaluation.py`、`scripts/run_guardrail_evaluation.py`、`.github/workflows/agent-quality-gate.yml` |
+Grid Searchは、まず検索候補数・RRF・最終取得件数を探索し、次にその段階の最良候補を固定してBoost係数を探索します。SLO適合候補をRecall@5、MRR、Failure Rate、p95 Latencyなどの辞書式規則で順位付けします。
 
-## 品質統治機構
+候補の列挙と選択規則は固定されていますが、同じ精度でも実測Latencyによって選択が変わり得ます。また、2段階の探索は全パラメータを同時に総当たりするものではありません。保存済み [探索レポート](data/eval/phase5_grid_search_report.json) は**Stage 1の2試行分**であり、既定の2段階探索を完走したEvidenceではありません。
 
-### Quality Contract（不変式の管理）
+試行ID・設定・指標・SLO適合可否を保存することで、選択理由を後から検証できます。出力したBest Configはレビュー対象で、現行Retrieverが自動読み込みして適用するものではありません。探索の実装と選択規則は [Grid Searchスクリプト](scripts/run_phase5_grid_search.py) を参照してください。
 
-Quality Contract は、評価条件を固定して比較可能性を守るための不変式です。
+### 実装を検証するテスト
 
-| 要素 | 役割 | 実装上の根拠 |
-|:---|:---|:---|
-| Ground Truth | 何を正解とみなすかを固定する | `data/eval/ground_truth.json`、`data/eval/ground_truth_phase0_expanded.json` |
-| Baseline | どの水準から改善・劣化を判定するかを固定する | `data/eval/phase0_vector_baseline.json`、`data/eval/phase0_vector_baseline_expanded.json` |
-| SEED | コーパス生成と baseline 再生成の入力条件を固定する | `scripts/run_phase0_expanded_baseline.py` の `SEED = 20260223` |
+| 検証対象 | 既存テストが確認すること |
+|---|---|
+| [Retrieval Metrics](tests/test_retrieval_metrics.py) | 文書／Chunkのhit判定、MRR、正解ソースなし、percentile計算。 |
+| [Hybrid Retriever](tests/test_hybrid_retriever.py)・[Exact Match Boost](tests/test_exact_match_boost_integration.py) | RRF統合、取得件数、識別子検出とBoostのスコア・順位への作用。 |
+| [Grid Search](tests/test_phase5_grid_search.py) | 探索候補の構成、SLO適合判定、与えられた指標に対する候補選択とtie-break。 |
 
-#### Retrievalから共通AI評価へ拡張されたQuality Contract
+これらは評価処理の契約を検証するテストです。実トラフィック上の品質や外部サービスの可用性を示すEvidenceとは区別します。
 
-Retrievalでは、`id`、`citations`、`latency_ms` を持つdetailsリストをGround Truth／Baselineと照合する独立した評価契約を使います。Agent／Guardrail系は `AgentRunTrace` を利用し、Guardrailの観測値は `AgentRunTrace.guardrail` へ格納します。両者は評価思想を共有しますが、同一schemaではありません。
+## Tech Stack
 
-| 評価系 | 比較条件を固定する要素 |
-|:---|:---|
-| Retrieval | Ground Truth、Baseline、固定SEED、index対象コーパス |
-| Agent品質 | 評価ケース、Fixture／保存Trace、Trace schema、Gate設定、review済みBaseline |
-| Agent高度評価 | 評価ケース、Trace schema、Judge model、prompt version、pricing version |
-| Guardrail | 評価ケース、Fixture、`AgentRunTrace.guardrail`、Guardrail Gate設定 |
-
-通常のAgent評価はBaselineを読み取るだけで更新しません。高度評価はJudge model／prompt version／評価日時、Cost評価は `config/agent_pricing.json` の `pricing_version` をレポートに残し、比較条件の追跡を可能にします。GuardrailはBaseline比較を行わず、合成Fixtureに対する絶対Gateとして運用します。
-
-### 品質ラチェット機構
-
-Retrieval SLO は absolute 値ではなく baseline 比率で定義されます。`run_phase4_retrieval_eval.py` と `run_phase5_grid_search.py` は baseline の `recall_at_5`、`mrr`、`failure_rate` から下限・上限を再計算し、実装上は `RETRIEVAL_RECALL5_MIN_RATIO`、`RETRIEVAL_MRR_MIN_RATIO`、`RETRIEVAL_FAILURE_MAX_RATIO` で制御されます。baseline を更新すると次回以降の合格基準も自動で引き上がるため、品質を下げにくいラチェット構造になります。
-
-### PR ゲート vs Nightly 探索の責務分離
-
-| 観点 | PR ゲート | Nightly Grid Search |
-|:---|:---|:---|
-| トリガー | `pull_request`、`push`、`workflow_dispatch` | `schedule (0 2 * * *)`、`workflow_dispatch` |
-| 責務 | 既存品質を破壊しない保守的チェック（unit-test → retrieval-gate → evaluate の3段直列によるフェイルファスト構成） | 新しい最良設定を探す積極的探索 |
-| 性質 | 守り | 攻め |
-| 計算コスト | 低〜中: 固定設定の評価と SLO 判定が中心 | 高: 複数 trial を走査し全候補を比較する |
-
-Agent／GuardrailのPR JobはFixtureと保存済みBaseline／Gate設定でOffline実行します。実Agent、外部Judgeを使う高度評価、実Gateway評価は `workflow_dispatch` の明示入力で起動する別Jobに分離し、外部Judgeを使う高度指標はmonitor-onlyとしてPRをblockしません。
-
-### 3軸の再現性担保
-
-| 軸 | 機構 | 保証すること |
-|:---|:---|:---|
-| データ再現性 | SEED 固定の決定論的コーパス生成 | 同じ seed なら同じ合成コーパスと baseline を再生成できる |
-| 評価再現性 | Ground Truth / Baseline JSON のリポジトリ固定 | 比較条件を後から追跡でき、指標差分の根拠が残る |
-| モデル再現性 | `TRANSFORMERS_OFFLINE` + `actions/cache` | CI で同じ埋め込みモデルを安定して再利用できる |
-
-Phase 6では、Fixtureと保存Traceをリポジトリに固定し、Runner／AdapterをEvaluatorから分離することで、同じ観測結果を再評価できます。ただし、実Agent、実Gateway、外部Judgeの出力自体は外部サービスやモデル更新の影響を受けます。
-
-## 最適化の考え方
-
-最適化は「とにかく指標を上げる」ではなく、「SLO を満たした範囲で改善する」方針です。現実装では `is_eligible()` が Recall@5、MRR、Failure Rate の閾値を同時に満たす候補だけを通し、その後 `ranking_key()` で辞書式に順位付けします。
-
-| 優先順 | 指標 | ソート方向 | 表明する価値判断 |
-|:---:|:---|:---:|:---|
-| 1 | Recall@5 | 降順 | 必要な情報を見つけられるかが最重要 |
-| 2 | MRR | 降順 | できれば最初の1件で見つかってほしい |
-| 3 | Failure Rate | 昇順 | 取りこぼしは少ないほど良い |
-| 4 | p95レイテンシ | 昇順 | ユーザー体験の劣化を抑える |
-| 5 | Recall@1 | 降順 | 一発命中の精度 |
-| 6 | trial_id | 昇順 | 同一指標なら早い試行を優先し、安定に決着させる |
-
-この優先順位自体が、何を守り、何を後順位に置くかというシステムの価値判断を構造として表明しています。
-
-探索は 2 段階です。
-
-```mermaid
-flowchart LR
-  S1["Stage 1<br/>vector_k / bm25_k / rrf_k / final_k 探索"]
-  S1 --> EL1["SLO Eligibility Filter"]
-  EL1 --> RK1["辞書式ランキング"]
-  RK1 --> BEST1["Stage1 最良候補"]
-  BEST1 --> S2["Stage 2<br/>boost_alpha / boost_beta 探索"]
-  S2 --> EL2["SLO Eligibility Filter"]
-  EL2 --> RK2["辞書式ランキング"]
-  RK2 --> FINAL["Best Config 確定"]
-```
-
-1. stage1:
-   `vector_candidate_k`、`bm25_candidate_k`、`rrf_k`、`final_top_k` を探索する
-2. stage2:
-   stage1 の最良候補を固定し、`boost_alpha` と `boost_beta` を探索する
-
-現実装が Bayesian Optimization ではなく Grid Search を採用している理由は、探索点が最初から明示され、全 trial が決定論的に評価され、結果が JSON / Markdown レポートとして完全な監査証跡に残るためです。履歴依存の探索より計算効率は劣る一方、再現性と説明可能性は高く保てます。
-なお、これらの指標が真の品質を完全には代表しないという Goodhart's Law 的リスクを意識し、既知の制限にて4観点のリスクを管理対象として明示している。
+| 用途 | 技術 |
+|---|---|
+| 言語・実行環境 | Python 3.11（CI）、依存パッケージは [requirements.txt](requirements.txt) に固定 |
+| Dense Retrieval | `sentence-transformers`、`all-MiniLM-L6-v2`、`faiss-cpu` |
+| Sparse／Hybrid Retrieval | 自前BM25、Exact Match Boost、RRF、`fugashi`／`unidic-lite` |
+| 回答生成・検証／回答評価 | OpenAI API、任意のLangSmith tracing |
+| API | FastAPI、Uvicorn |
+| QAデータ構造 | Pydantic |
+| 品質管理 | pytest、GitHub Actions、JSON／Markdownレポート、回答評価のCSV履歴 |
 
 ## Quick Start
 
-### セットアップ
+リポジトリのルートで実行します。Python 3.11を用い、最初にLLM不要のRetrieval評価を試します。初回はEmbeddingモデルのダウンロードが必要です。
 
 ```bash
-python -m venv .venv
+python3.11 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
-```
+python -m pip install -r requirements.txt
 
-### 最小の質問応答を試す
+export PYTHONPATH=src
+export RAGQA_DOCS_DIR=data/phase0_expanded/docs
+export RETRIEVAL_GROUND_TRUTH_PATH=data/eval/ground_truth_phase0_expanded.json
+export RETRIEVAL_BASELINE_PATH=data/eval/phase0_vector_baseline_expanded.json
+export RETRIEVAL_REPORT_PATH=.artifacts/retrieval-quality/report.json
 
-```bash
-PYTHONPATH=src python -m ragqa.ingest
-PYTHONPATH=src python -m ragqa.ask "この仕様の例外条件は？"
-```
-
-### Retrieval SLO ゲートを実行する
-
-```bash
-RAGQA_DOCS_DIR=data/phase0_expanded/docs \
-PYTHONPATH=src \
 python -m ragqa.ingest
-
-RAGQA_DOCS_DIR=data/phase0_expanded/docs \
-RETRIEVAL_GROUND_TRUTH_PATH=data/eval/ground_truth_phase0_expanded.json \
-RETRIEVAL_BASELINE_PATH=data/eval/phase0_vector_baseline_expanded.json \
-PYTHONPATH=src \
 python scripts/run_phase4_retrieval_eval.py
 ```
 
-### 回答品質評価を実行する
+`data/index/` にindexを構築し、SLO判定とケース別結果を `.artifacts/retrieval-quality/report.json` へ保存します。APIキーは不要です。正解ソースとindexが不整合の場合やSLO未達の場合は、終了コード1になります。
+
+同じindexでQAを試すには、次を実行します。
 
 ```bash
-OPENAI_API_KEY=your_api_key \
-PYTHONPATH=src \
-python -m ragqa.evaluate
+python -m ragqa.ask "POST /api/signup でメールアドレスが重複した場合のステータスコードは？"
 ```
 
-### Grid Search を実行する
+`OPENAI_API_KEY` を設定するとLLMによる回答生成・Evidence Checkを実行します。未設定時は取得した関連箇所を表示するfallbackで動作し、生成回答の品質評価にはなりません。APIは `uvicorn ragqa.server:app` で起動し、`POST /api/v1/chat` に `{"query": "質問文"}` を送ると同じQA処理を呼び出せます。
 
-```bash
-RAGQA_DOCS_DIR=data/phase0_expanded/docs \
-RETRIEVAL_GROUND_TRUTH_PATH=data/eval/ground_truth_phase0_expanded.json \
-RETRIEVAL_BASELINE_PATH=data/eval/phase0_vector_baseline_expanded.json \
-PYTHONPATH=src \
-python scripts/run_phase5_grid_search.py --topn 10
-```
+## Known Limitations — 既知の制限
 
-### Agent品質評価
+### Retrieval・ベンチマーク
 
-```bash
-PYTHONPATH=src python scripts/run_agent_evaluation.py --runner fixture
-```
+- **評価セットへの過学習**：25ケース・15合成文書での探索なので、同じセットへの適合が進んでも一般化は保証できません。8種の質問タイプは含みますが、業務領域全体のカバレッジを定量保証していません。
+- **指標と真の品質の差**：現在は文書単位で、正解のいずれかがhitすれば成功です。必要なChunkの取得、複数根拠の網羅、回答の正しさを完全には表しません。Failure RateもRecall@5の補数で、独立した品質軸ではありません。
+- **Synthetic corpusと実文書のgap**：実仕様書の規模、語彙、更新頻度、矛盾、アクセス権を代表しておらず、実コーパスとの品質相関は未検証です。
+- **Benchmark陳腐化**：コーパス更新にGround Truthを自動追従させる機構はありません。文書IDの存在検査だけでは、期待する事実の変化を検出できません。
+- **再現性の範囲**：SEED・データ・候補列挙は固定できますが、モデル名の指定とCI cacheはモデルrevisionの不変性を保証しません。Latencyは環境やwarm-upで変動し、Retrieval SLOにはLatency上限がありません。
 
-### Agent高度評価（Mock Judge）
+### QA・LLM回答評価
 
-```bash
-PYTHONPATH=src python scripts/run_agent_advanced_evaluation.py \
-  --runner fixture \
-  --judge mock
-```
+- **LLM依存**：QAのVerifierと回答評価もモデルによる判定です。出力・判定の揺らぎや、正しい根拠を取得した後の誤回答を排除する保証はありません。
 
-### Gateway Guardrail評価
+## Related Projects / Further Documentation
 
-```bash
-PYTHONPATH=src python scripts/run_guardrail_evaluation.py --runner fixture
-```
+| プロジェクト | 責務 |
+|---|---|
+| **spec-rag-qa（本リポジトリ）** | **品質保証**：RAG Retrieval品質の評価・比較・CI Quality Gate |
+| [Agentic RAG with Control Plane](https://github.com/mlprototype/ai-agent-rag) | **動的制御**：Agent実行 |
+| [Policy-Aware Multi-LLM Gateway](https://github.com/mlprototype/policy-aware-llm-gateway) | **運用統治**：Gateway・Guardrail実装 |
 
-## エントリーポイント
+詳細な設計意図・評価契約・実行手順は既存ドキュメントへ進めます。現在の判定条件や実行条件は、リンク先の実装・設定・workflowを参照してください。
 
-- `python -m ragqa.ingest`
-  文書を ingest して vector / BM25 index と manifest を生成する
-- `python -m ragqa.ask "<question>"`
-  質問応答を実行し、sources・answer・verification を表示する
-- `python -m ragqa.evaluate`
-  回答品質評価を実行し、`data/eval/report.json` と `data/eval/trend.csv` を更新する
-- `uvicorn ragqa.server:app --host 0.0.0.0 --port 8000`
-  API サーバを起動する
-- `python scripts/run_phase0_expanded_baseline.py`
-  拡張コーパスの baseline を再生成する
-- `python scripts/run_phase3_boost_verification.py`
-  BM25 exact match boost の効果を検証する
-- `python scripts/run_phase4_retrieval_eval.py`
-  baseline-relative の Retrieval SLO ゲートを実行する
-- `python scripts/run_phase5_grid_search.py --topn 10`
-  2 段階 Grid Search を実行し、best config とレポートを出力する
-- `python scripts/run_agent_evaluation.py --runner fixture`
-  決定論的Agent品質評価、Baseline比較、Quality Gateを実行する
-- `python scripts/run_agent_advanced_evaluation.py --runner fixture --judge mock`
-  Groundedness、Stability、Costのmonitor-only高度評価を実行する
-- `python scripts/run_guardrail_evaluation.py --runner fixture`
-  Gateway Guardrailの検知・Action・MASK証跡を評価する
-
-## ディレクトリ構成
-
-```text
-spec-rag-qa/
-├── .github/
-│   └── workflows/
-│       ├── agent-quality-gate.yml           # Agent／Guardrail PR Gate・手動評価
-│       ├── phase5-grid-search.yml           # Phase 5: Grid Search用CI
-│       └── ragqa-quality-gate.yml           # Retrieval／RAG品質ゲート（PRフック）
-├── config/
-│   ├── agent_quality_gate.yml               # Agent絶対／Baseline-relative Gate
-│   ├── agent_pricing.json                   # 高度評価用version付き価格表
-│   └── guardrail_quality_gate.yml           # Guardrail絶対Gate
-├── data/                                   # データディレクトリ
-│   ├── agent_eval/
-│   │   ├── baseline/                        # review済みAgent Baseline
-│   │   ├── cases/                           # Agent／Guardrail評価ケース
-│   │   ├── fixtures/                        # Agent／Guardrail保存Trace
-│   │   └── reports/                         # JSON／Markdownレポート例
-│   ├── docs/                               # インジェスト元ドキュメント
-│   ├── eval/                               # 評価データ群 (Ground Truth / Baseline)
-│   ├── index/                              # 構築済みインデックス (FAISS / BM25)
-│   └── phase0_expanded/                    # Phase0拡張コーパス
-├── docs/                                   # 設計・評価契約・制約
-│   ├── agent_advanced_evaluation.md         # 高度Agent評価・Judge・Cost
-│   ├── agent_evaluation_dataset.md          # Agentケース・Runner・Trace契約
-│   └── guardrail_evaluation.md              # Guardrail評価・実Gateway接続
-├── scripts/                                # バッチスクリプト
-│   ├── run_agent_advanced_evaluation.py     # monitor-only高度Agent評価
-│   ├── run_agent_evaluation.py              # 決定論的Agent品質評価
-│   ├── run_guardrail_evaluation.py          # Gateway Guardrail評価
-│   ├── run_phase0_expanded_baseline.py     # ベースライン作成
-│   ├── run_phase3_boost_verification.py    # BM25 Boost効果検証
-│   ├── run_phase4_retrieval_eval.py        # 検索評価実行
-│   └── run_phase5_grid_search.py           # グリッドサーチ実行
-├── src/
-│   ├── evaluator/                          # カスタム評価用ロジック
-│   │   ├── evaluator.py
-│   │   └── fail_detector.py
-│   ├── ragqa/                              # コアパッケージ
-│   │   ├── ask.py                          # 質問応答（CLI）
-│   │   ├── agent_eval/                     # Agent／Guardrail評価コア
-│   │   │   ├── adapters/                   # Fixture／Trace／Subprocess／Gateway
-│   │   │   ├── metrics/                    # Route／Tool／Citation等の指標
-│   │   │   ├── evaluator.py                # 決定論的Evaluator
-│   │   │   ├── models.py                   # AgentRunTrace等のschema
-│   │   │   └── runner.py                   # Agent Runner契約
-│   │   ├── bm25_store.py                   # BM25 実装
-│   │   ├── chunking.py                     # チャンキング処理
-│   │   ├── config.py                       # 設定ファイル
-│   │   ├── embedder.py                     # 埋め込みモデル
-│   │   ├── evaluate.py                     # 回答評価ロジック
-│   │   ├── hybrid_retriever.py             # 検索ロジック (Vector + Keyword)
-│   │   ├── improvement_catalog.py          # 改善カタログ
-│   │   ├── ingest.py                       # 取り込みロジック
-│   │   ├── llm.py                          # LLM呼び出し
-│   │   ├── prompt.py                       # プロンプト管理
-│   │   ├── retrieval_metrics.py            # Retrieval指標評価
-│   │   ├── schemas.py                      # データ構造定義
-│   │   ├── server.py                       # FastAPIサーバ
-│   │   ├── service.py                      # サービスロジック
-│   │   ├── tokenizer_ja.py                 # 日本語トークナイザ
-│   │   ├── utils.py                        # ユーティリティ
-│   │   └── vectorstore.py                  # ベクターストア (FAISS)
-│   └── schemas/                            # スキーマ定義
-│       ├── answer.py
-│       └── evaluation.py
-├── tests/                                  # テストコード
-│   ├── agent_eval/                          # Agent／Guardrail評価テスト
-│   ├── fixtures/
-│   ├── test_bm25.py
-│   ├── test_chunking.py
-│   ├── test_exact_match_boost_integration.py
-│   ├── test_hybrid_retriever.py
-│   ├── test_phase5_grid_search.py
-│   ├── test_retrieval_metrics.py
-│   ├── test_tokenizer.py
-│   └── test_utils.py
-├── README.md                               # プロジェクト概要
-└── requirements.txt                        # 依存ライブラリ
-```
-
-## 共通AI品質評価基盤
-
-Phase 0～5で構築したRetrieval品質管理を起点に、Phase 6では評価範囲をAgent実行とGateway Guardrailへ拡張しました。Fixture、保存Trace、実システム出力をRunner／Adapterで評価契約へ接続し、実行系とEvaluatorを分離しています。
-
-Agent／Guardrail系では、評価、集計、JSON／Markdownレポート、Baseline比較、Quality Gateを再利用可能なコンポーネントとして分離しています。PRではAPIキー不要のFixtureを評価し、実Agent、実Gateway、外部Judgeを使う評価は手動Jobへ分けています。
-
-すべてを無理に同じschemaへ統合してはいません。Retrievalは `id`、`citations`、`latency_ms` のdetailsリスト、Agentは `AgentRunTrace`、Guardrailはその `guardrail` フィールドを評価します。
-
-| 評価領域 | 主な評価内容 | 実行方式 | PR Gate |
-|:---|:---|:---|:---|
-| Retrieval | Recall@1/5、MRR、Failure Rate、レイテンシ | Ground Truth + Hybrid Retriever | あり（Baseline-relative SLO） |
-| Agent品質 | Task Success、Route、Tool、Citation、Format、レイテンシ | Fixture／保存Trace／Subprocess | あり（Offline Fixture） |
-| Agent高度評価 | Groundedness、Answer Semantic Consistency、Stability、Cost | Mock／HTTP Judge | なし（monitor-only） |
-| Gateway Guardrail | Precision、Recall、F1、FPR、Action、MASK証跡 | Fixture／Gateway HTTP | あり（PRはFixture） |
-
-AgentではCritical Task Success／Format、必須Tool、Tool schema、Citationなどを絶対Gateとし、全体Task Success、Route Accuracy、p95レイテンシをreview済みBaselineと比較します。GuardrailはBaselineを使わず、Critical Recall、Precision／Recall／FPR、BLOCK／MASKなどの絶対Gateを適用します。対象ケースがなく分母0の指標は100%へ変換せず `N/A` として扱います。
-
-詳細は、[Agent評価データセットとRunner](docs/agent_evaluation_dataset.md)、[高度Agent評価](docs/agent_advanced_evaluation.md)、[Gateway Guardrail評価](docs/guardrail_evaluation.md)、[Agent Quality Gate設定](config/agent_quality_gate.yml)、[Guardrail Quality Gate設定](config/guardrail_quality_gate.yml)を参照してください。
-
-## Agent評価
-
-Phase 6の決定論的Agent評価は、20件の公開可能な合成ケースを使い、Task Success、Route、Tool、Citation、回答形式、レイテンシを評価します。Fixture、保存Trace、実AgentのSubprocess出力を同じEvaluatorへ接続できます。
-
-```bash
-PYTHONPATH=src python scripts/run_agent_evaluation.py --runner fixture
-```
-
-- PRのOffline Fixture JobはAPIキーを使わず、Critical Task Success／Format、Runner error、必須Tool、Tool schema、Citation Validityを絶対Gateとして判定します。Criticalな失敗は平均点で相殺しません。
-- 全体Task Success、Route Accuracy、p95レイテンシはreview済みBaselineと比較します。通常実行はBaselineを更新せず、分母0の指標は `N/A` のまま保持します。
-- 標準レポートは `.artifacts/agent-quality/report.json` と `report.md`、Git管理する例は `data/agent_eval/reports/example.json` と `example.md` です。
-- 実 `ai-agent-rag` の評価は、対象revisionを固定する手動のSubprocess Jobに分離しています。
-- 合成Fixtureは契約回帰用であり、LLMの揺らぎ、実トラフィック、実ネットワーク、全Tool、Citationの意味的支持を代表しません。
-
-Gate閾値は [config/agent_quality_gate.yml](config/agent_quality_gate.yml)、ケース、Runner／Trace契約、終了コード、Baseline更新、詳細な制約は [Agent評価データセットとRunner](docs/agent_evaluation_dataset.md) を参照してください。
-
-### 高度評価（monitor-only）
-
-Groundedness、Answer Semantic Consistency、repeat-run Stability、version付き価格表によるCostは、既存PR Gateから分離した高度評価CLIで記録します。
-
-```bash
-PYTHONPATH=src python scripts/run_agent_advanced_evaluation.py \
-  --runner fixture \
-  --judge mock
-```
-
-- 高度指標はすべてmonitor-onlyで、PRをblockしません。Mock Judgeはschema、retry、集計、レポート経路の確認専用であり、そのスコアを品質判断には使いません。
-- 外部JudgeはPRでは実行せず、CIではGitHub Environmentに所属し、完全一致hostを検査する手動Jobに限定します。質問、回答、Source snippet、許可されたTool factsが外部送信されるため、送信先とデータ取扱条件の承認が必要です。
-- 標準レポートは `.artifacts/agent-advanced/report.json` と `report.md` です。Judge model、prompt version、評価日時、`pricing_version` を記録します。
-- usageまたは実model IDが欠けるCostは `N/A` とし、Agentのtarget名をmodel名として価格付けしません。
-
-Judge schema、計算式、Tool Evidenceの信頼境界、HTTP契約、既知の制約は [高度Agent評価](docs/agent_advanced_evaluation.md)、評価用価格は [agent_pricing.json](config/agent_pricing.json) を参照してください。
-
-### Gateway Guardrail評価
-
-`policy-aware-llm-gateway`向けGuardrail評価は、Prompt Injection、PII、正常near-miss、複合入力からなる30件の公開可能な合成ケースを使い、検知とBLOCK／MASK／WARN／ALLOWを評価します。
-
-```bash
-PYTHONPATH=src python scripts/run_guardrail_evaluation.py --runner fixture
-```
-
-- PRでは保存済み `AgentRunTrace.guardrail` Fixtureだけを絶対Gateで評価するため、Gateway起動もAPIキーも不要です。通常のAgent Baselineは使いません。
-- Precision、Recall、F1、FPRをoverall／PII／Injection別に集計し、期待Action、MASK置換証跡、Critical Recallを判定します。
-- `unknown` と `execution_error` はALLOWやTNへ推測せず、分母0は `N/A` とします。
-- 標準レポートは `.artifacts/guardrail-quality/report.json` と `report.md` です。
-- 実Gateway評価はallowlist付きHTTP Runnerを使う手動Jobです。現行の公開HTTP契約では成功時ActionやMASK後のprovider入力を完全には観測できない場合があります。
-
-Gate閾値は [guardrail_quality_gate.yml](config/guardrail_quality_gate.yml)、データ、Adapter、実Gateway手順、観測上の制約は [Gateway Guardrail評価](docs/guardrail_evaluation.md) を参照してください。
-
-## 既知の制限
-
-現在の品質管理は有効ですが、Goodhart's Law を避けるには「測っている指標が真の品質を完全には代表しない」ことを明示しておく必要があります。以下の制約は、既知のリスクとして管理対象に含めるべきものです。
-
-| リスク | 発生メカニズム | 緩和策 | 残存リスク |
-|:---|:---|:---|:---|
-| 評価セットへの過学習 | 25ケースへの適合最大化 | 8種のクエリタイプ混在 | 定量的カバレッジ保証なし |
-| 評価指標の不完全さ | doc 粒度 hit 判定の楽観バイアス | `parse_source_ref()` の chunk 粒度対応 | chunk 粒度 ground truth 未整備 |
-| 合成コーパスのギャップ | 人工文書が実仕様書の構造を再現しない | 意図的な曖昧語彙挿入 | 実コーパスとの相関未検証 |
-| ベンチマーク陳腐化 | コーパス拡張時に ground truth が古い事実を期待 | Ground Truth 固定 | 自動更新メカニズムなし |
-
-これらのリスクを README に明記すること自体が、指標運用の限界を認識したうえで品質統治を行う設計方針の表明でもあります。
-
-### Agent／Guardrail評価の制限
-
-- 合成Fixtureは契約回帰のためのデータであり、実トラフィックの語彙、カテゴリ比率、権限、機密区分を代表しません。
-- Fixture合格は、LLMの揺らぎ、実ネットワークのレイテンシ、認証・再試行、外部サービス障害を保証しません。
-- 決定論的Citation評価はTraceと参照先の整合性を検査しますが、引用内容が回答を意味的に支持するかは保証しません。
-- Mock Judgeは配線とschema確認専用です。外部Judgeの値もmodel／prompt変更の影響を受けます。
-- 現行Gatewayの公開HTTP契約では、実providerへ送信されたMASK後入力や成功時Actionを完全には観測できない場合があります。
-- `config/agent_pricing.json` は合成Fixture向けであり、実providerの最新価格を保証しません。usageや実model IDがなければCostは `N/A` です。
-
-## 今後の展望
-
-- Chunk 単位 ground truth のアノテーション:
-  `parse_source_ref()` はすでに `doc_id#chunk_id` を扱えるため、ground truth 側へ chunk_id を持ち込める
-- Chunk 単位評価:
-  chunk 粒度の正解を使い、chunking 戦略や boost 設定へ直接フィードバックできるようにする
-- Embedding モデル比較:
-  `Embedder(model_name)` と baseline script の `EMBEDDING_MODEL` を使い、埋め込みモデル差分を同一ベンチマークで比較する
-- Latency-Budget 設計:
-  いまは観測値とランキング項目に留まる `p95_latency_ms` を、`max_p95_latency_ms` のような SLO 制約へ昇格させる
-- Pareto Frontier 最適化:
-  辞書式ランキングは"最優先指標が最大な一点"しか選ばないため、trial レポートから支配されない試行集合を抽出し、設計者が明示的にトレードオフを選択できる設計資料として可視化する
-
-### 共通AI品質評価基盤
-
-以下は未実装または運用データの蓄積が必要な将来項目です。
-
-- 匿名化した実Traceと実トラフィック比率に基づく評価セットの整備
-- Agent／Guardrail指標と人手評価の相関検証
-- 外部サービス停止、timeout、再試行を含む障害注入評価
-- Unicode難読化、多言語、認証・権限境界を含むセキュリティ評価セットの拡張
-- Judge model／prompt変更によるdriftの継続監視
-- `spec-rag-qa`、`ai-agent-rag`、`policy-aware-llm-gateway` 間のTrace互換性改善
-
-## 用語集
-
-- Quality Contract:
-  Ground Truth、Baseline、SEED によって評価条件を固定し、比較可能性を守る枠組み。
-- 品質ラチェット:
-  baseline-relative SLO により、baseline 更新後の合格基準も自動で引き上がる構造。
-- SLO Eligibility:
-  Recall@5、MRR、Failure Rateの閾値を全て満たしたcandidateだけを最適化対象に残す判定。
-- ExactMatchBoost:
-  識別子やエラーコードの完全一致を BM25 スコアへ加点する仕組み。
-- RRF Fusion:
-  vector search と BM25 search の順位情報を Reciprocal Rank Fusion で統合する方式。
-- コーパスアライメント:
-  ground truth が期待する `doc_id` と、index に載っている `doc_id` が一致していること。
-- AgentRunTrace:
-  AgentのRoute、Tool、Source、Citation、レイテンシ、usage、Guardrail観測などを保持するPhase 6の共通Trace契約。
-- Fixture:
-  Runnerや外部APIを起動せず、保存済みTraceから決定論的に評価経路を再現する入力。
-- Absolute Gate:
-  Baselineとの比較ではなく、Critical指標や実行エラーなどを固定閾値で直接判定するQuality Gate。
-- Baseline-relative Gate:
-  review済みBaselineに対する比率や許容差から回帰を判定するQuality Gate。
-- monitor-only:
-  指標と失敗をレポートするが、現在はPRの合否に使用しない運用モード。
-- Groundedness:
-  Agent回答内の評価可能なclaimが、許可されたSourceまたはTool Evidenceに支持される割合。
-- Guardrail FPR:
-  正常なnear-miss入力をGuardrailが誤って検知した割合（False Positive Rate）。
-- Judge version / Pricing version:
-  高度評価の比較条件を追跡するJudge model／prompt versionと、Cost計算に使った価格表version。
+- [指標とQuality Contractの説明](docs/METRICS_EXPLANATION.md)
+- [Retrieval品質管理の設計資料](docs/retrieval_quality_management_system_design.md)
+- [QAの設計・処理フロー](docs/design_document.md)
+- [Agent評価データセット・Runner・Baseline更新](docs/agent_evaluation_dataset.md)／[Agent Gate設定](config/agent_quality_gate.yml)
+- [高度Agent評価・Judge・Stability・Cost](docs/agent_advanced_evaluation.md)／[評価用価格表](config/agent_pricing.json)
+- [Gateway Guardrail評価・HTTP接続・観測限界](docs/guardrail_evaluation.md)／[Guardrail Gate設定](config/guardrail_quality_gate.yml)
