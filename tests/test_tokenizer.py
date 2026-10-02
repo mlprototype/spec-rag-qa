@@ -4,6 +4,7 @@ from pathlib import Path
 
 import fugashi
 import unidic_lite
+import pytest
 
 from ragqa.tokenizer_ja import detect_special_tokens, tokenize
 
@@ -39,6 +40,24 @@ def test_tok05_detect_special_tokens():
 def test_tok06_proper_noun_is_kept_as_noun():
     tokens = tokenize('UserとTokyoを確認する')
     assert 'Tokyo' in tokens, f'固有名詞が欠落: {tokens}'
+
+
+@pytest.mark.parametrize("path", [
+    "/api/user_id", "/api/user-id", "/users/{id}",
+    "/v1/users/{user_id}/orders/{order_id}", "/api/USER_ID", "/api/409/status",
+])
+def test_api_path_representation_matches_boost_tokens(path):
+    assert tokenize(path) == [path]
+    assert detect_special_tokens(path) == [path]
+    assert path in tokenize(f"GET {path} の仕様")
+    assert path in detect_special_tokens(f"GET {path} の仕様")
+
+
+def test_standalone_identifiers_are_preserved_alongside_api_path():
+    text = "409 USER_ID user_id /api/user_id"
+    expected = ["409", "USER_ID", "user_id", "/api/user_id"]
+    assert tokenize(text) == expected
+    assert detect_special_tokens(text) == expected
 
 
 def _get_unidic_version() -> str:

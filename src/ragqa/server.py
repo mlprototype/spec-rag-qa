@@ -15,13 +15,12 @@ class ChatRequest(BaseModel):
 
 
 @app.post("/api/v1/chat", response_model=AnswerResult)
-async def chat_endpoint(req: ChatRequest):
+def chat_endpoint(req: ChatRequest):
     """
     質問を受け取り、RAGを実行して結果を返します。
     """
     try:
-        # ロジック呼び出し（同期関数なのでFastAPIがうまいことスレッドプールで処理してくれます）
-        # ※本来は service 側も async def にするのがベストですが、まずはこれで動きます
+        # 同期endpointとして、検索・LLM処理をFastAPIのスレッドプールで実行する。
         result = answer_question(req.query)
         return result
     except FileNotFoundError:

@@ -8,9 +8,10 @@ from .schemas import AnswerResult
 from .service import answer_question
 
 
-def main() -> None:
+def main() -> int:
     if len(sys.argv) < 2:
-        raise SystemExit('Usage: python -m ragqa.ask "質問文"')
+        print('Usage: python -m ragqa.ask "質問文"', file=sys.stderr)
+        return 2
 
     question = sys.argv[1]
 
@@ -18,8 +19,8 @@ def main() -> None:
         # ロジック呼び出し：たったの1行！
         result: AnswerResult = answer_question(question)
     except Exception as e:
-        print(f"Error: {e}")
-        return
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
 
     # === 表示ロジック ===
     print("==== Retrieved ====")
@@ -44,6 +45,8 @@ def main() -> None:
         for p in result.verification.missing_points[:20]:
             print(f"  - {p}")
 
+    return 0
+
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

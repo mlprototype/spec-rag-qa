@@ -70,7 +70,8 @@ class BM25Store:
             if tf_value == 0:
                 continue
 
-            idf = math.log((self.N - df_value + 0.5) / (df_value + 0.5))
+            # 正のIDFを使い、頻出語の一致が非一致(0点)より下位になるのを防ぐ。
+            idf = math.log1p((self.N - df_value + 0.5) / (df_value + 0.5))
             denom = tf_value + self.k1 * (
                 1.0 - self.b + self.b * (dl / self.avgdl)
             )

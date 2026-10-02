@@ -144,3 +144,21 @@ def test_int08_no_boost_on_plain_query(boost_corpus):
         assert abs(nb_scores[idx] - bo_scores.get(idx, 0.0)) < 1e-9, (
             f"識別子なしクエリでスコアが変化した: chunk_idx={idx}"
         )
+
+
+@pytest.mark.parametrize("path", [
+    "/api/user_id", "/api/user-id", "/users/{id}",
+    "/v1/users/{user_id}/orders/{order_id}", "/api/USER_ID", "/api/409/status",
+])
+def test_api_path_receives_exact_and_all_hit_boost(path):
+    store = BM25Store()
+    store.build([
+        Chunk("correct.md", 0, f"{path} の仕様"),
+        Chunk("noise.md", 0, "無関係な監査文書"),
+    ])
+    raw = store.search(path, 2)
+    boosted = store.search(path, 2, boost_alpha=1.5, boost_beta=2.0)
+    assert boosted[0]["chunk_idx"] == 0
+    assert boosted[0]["exact_hits"] == 1
+    assert boosted[0]["bm25_score"] == pytest.approx(raw[0]["bm25_score"] + 3.5)
+    assert boosted[1]["exact_hits"] == 0
