@@ -33,11 +33,10 @@ permissions:
   pull-requests: read
 
 jobs:
-  changes:
-    name: Detect CI-relevant changes
+  offline-agent-quality-gate:
+    name: Offline Agent Quality Gate
     runs-on: ubuntu-latest
-    outputs:
-      run_quality_gate: ${{ steps.scope.outputs.run_quality_gate }}
+
     steps:
       - name: Decide whether the Offline Agent pipeline is needed
         id: scope
@@ -112,32 +111,29 @@ jobs:
               core.setOutput("run_quality_gate", "true");
             }
 
-  offline-agent-quality-gate:
-    name: Offline Agent Quality Gate
-    needs: changes
-    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.run_quality_gate == 'true') }}
-    runs-on: ubuntu-latest
-
-    steps:
       - name: Check out spec-rag-qa
+        if: steps.scope.outputs.run_quality_gate == 'true'
         uses: actions/checkout@v4
 
       - name: Set up Python
+        if: steps.scope.outputs.run_quality_gate == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: pip
 
       - name: Install dependencies
+        if: steps.scope.outputs.run_quality_gate == 'true'
         run: python -m pip install -r requirements.txt
 
       - name: Run Agent evaluation unit tests
+        if: steps.scope.outputs.run_quality_gate == 'true'
         env:
           PYTHONPATH: src
         run: python -m pytest tests/agent_eval -q
 
       - name: Prepare fresh Agent quality artifact directory
-        if: always()
+        if: always() && steps.scope.outputs.run_quality_gate == 'true'
         run: |
           rm -rf .artifacts/agent-quality
           rm -rf .artifacts/guardrail-quality
@@ -145,7 +141,7 @@ jobs:
           mkdir -p .artifacts/guardrail-quality
 
       - name: Run offline Fixture quality gate
-        if: always()
+        if: always() && steps.scope.outputs.run_quality_gate == 'true'
         env:
           PYTHONPATH: src
         shell: bash
@@ -158,7 +154,7 @@ jobs:
             2>&1 | tee .artifacts/agent-quality/run.log
 
       - name: Upload Agent quality reports
-        if: always()
+        if: always() && steps.scope.outputs.run_quality_gate == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: agent-quality-reports-${{ github.run_attempt }}
@@ -170,7 +166,7 @@ jobs:
             .artifacts/agent-quality/run.log
 
       - name: Run offline Guardrail Fixture quality gate
-        if: always()
+        if: always() && steps.scope.outputs.run_quality_gate == 'true'
         env:
           PYTHONPATH: src
         shell: bash
@@ -183,7 +179,7 @@ jobs:
             2>&1 | tee .artifacts/guardrail-quality/run.log
 
       - name: Upload Guardrail quality reports
-        if: always()
+        if: always() && steps.scope.outputs.run_quality_gate == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: guardrail-quality-reports-${{ github.run_attempt }}
