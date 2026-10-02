@@ -12,111 +12,109 @@ permissions:
   pull-requests: read
 
 jobs:
-  changes:
-    name: Detect CI-relevant changes
-    runs-on: ubuntu-latest
+  unit-test:
     outputs:
       run_quality_gate: ${{ steps.scope.outputs.run_quality_gate }}
-    steps:
-      - name: Decide whether the Retrieval pipeline is needed
-        id: scope
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const { owner, repo } = context.repo;
-            const isDocumentation = (path) => {
-              const ciRelevantRoots = [".github/", "config/", "data/", "examples/", "fixtures/", "scripts/", "src/", "tests/"];
-              if (ciRelevantRoots.some((root) => path.startsWith(root)) || /^requirements.*\.txt$/i.test(path)) {
-                return false;
-              }
-              if (path.startsWith("docs/")) {
-                return /\.(md|mdx|rst|adoc|txt|png|jpe?g|gif|svg|webp|pdf|mmd)$/i.test(path);
-              }
-              if (/^(README\.md|LICENSE(?:\..*)?|COPYING(?:\..*)?|CONTRIBUTING.*|CODE_OF_CONDUCT.*|SECURITY.*|CHANGELOG.*)$/i.test(path)) {
-                return true;
-              }
-              return /\.(md|mdx|rst|adoc|txt)$/i.test(path);
-            };
-
-            let files;
-            try {
-              if (context.eventName === "workflow_dispatch") {
-                core.setOutput("run_quality_gate", "true");
-                return;
-              }
-
-              if (context.eventName === "pull_request") {
-                files = await github.paginate(github.rest.pulls.listFiles, {
-                  owner,
-                  repo,
-                  pull_number: context.issue.number,
-                  per_page: 100,
-                });
-              } else if (context.eventName === "push") {
-                const before = context.payload.before;
-                const after = context.sha;
-                if (!before || /^0+$/.test(before)) {
-                  core.setOutput("run_quality_gate", "true");
-                  return;
-                }
-                const comparison = await github.rest.repos.compareCommits({
-                  owner,
-                  repo,
-                  base: before,
-                  head: after,
-                  per_page: 100,
-                });
-                if (comparison.data.status !== "ahead") {
-                  core.setOutput("run_quality_gate", "true");
-                  return;
-                }
-                files = comparison.data.files ?? [];
-              } else {
-                core.setOutput("run_quality_gate", "true");
-                return;
-              }
-
-              // GitHub caps compare responses at 300 files and PR file listings at 3000.
-              const listingLimit = context.eventName === "pull_request" ? 3000 : 300;
-              if (files.length >= listingLimit) {
-                core.setOutput("run_quality_gate", "true");
-                return;
-              }
-
-              const runPipeline = files.some(({ filename }) => !isDocumentation(filename));
-              core.setOutput("run_quality_gate", String(runPipeline));
-              core.info(`Retrieval pipeline required: ${runPipeline}`);
-            } catch (error) {
-              core.warning(`Could not determine changed files; running the full pipeline: ${error.message}`);
-              core.setOutput("run_quality_gate", "true");
-            }
-
-  unit-test:
-    needs: changes
-    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.run_quality_gate == 'true') }}
     runs-on: ubuntu-latest
 
     steps:
+    - name: Decide whether the Retrieval pipeline is needed
+      id: scope
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const { owner, repo } = context.repo;
+          const isDocumentation = (path) => {
+            const ciRelevantRoots = [".github/", "config/", "data/", "examples/", "fixtures/", "scripts/", "src/", "tests/"];
+            if (ciRelevantRoots.some((root) => path.startsWith(root)) || /^requirements.*\.txt$/i.test(path)) {
+              return false;
+            }
+            if (path.startsWith("docs/")) {
+              return /\.(md|mdx|rst|adoc|txt|png|jpe?g|gif|svg|webp|pdf|mmd)$/i.test(path);
+            }
+            if (/^(README\.md|LICENSE(?:\..*)?|COPYING(?:\..*)?|CONTRIBUTING.*|CODE_OF_CONDUCT.*|SECURITY.*|CHANGELOG.*)$/i.test(path)) {
+              return true;
+            }
+            return /\.(md|mdx|rst|adoc|txt)$/i.test(path);
+          };
+
+          let files;
+          try {
+            if (context.eventName === "workflow_dispatch") {
+              core.setOutput("run_quality_gate", "true");
+              return;
+            }
+
+            if (context.eventName === "pull_request") {
+              files = await github.paginate(github.rest.pulls.listFiles, {
+                owner,
+                repo,
+                pull_number: context.issue.number,
+                per_page: 100,
+              });
+            } else if (context.eventName === "push") {
+              const before = context.payload.before;
+              const after = context.sha;
+              if (!before || /^0+$/.test(before)) {
+                core.setOutput("run_quality_gate", "true");
+                return;
+              }
+              const comparison = await github.rest.repos.compareCommits({
+                owner,
+                repo,
+                base: before,
+                head: after,
+                per_page: 100,
+              });
+              if (comparison.data.status !== "ahead") {
+                core.setOutput("run_quality_gate", "true");
+                return;
+              }
+              files = comparison.data.files ?? [];
+            } else {
+              core.setOutput("run_quality_gate", "true");
+              return;
+            }
+
+            // GitHub caps compare responses at 300 files and PR file listings at 3000.
+            const listingLimit = context.eventName === "pull_request" ? 3000 : 300;
+            if (files.length >= listingLimit) {
+              core.setOutput("run_quality_gate", "true");
+              return;
+            }
+
+            const runPipeline = files.some(({ filename }) => !isDocumentation(filename));
+            core.setOutput("run_quality_gate", String(runPipeline));
+            core.info(`Retrieval pipeline required: ${runPipeline}`);
+          } catch (error) {
+            core.warning(`Could not determine changed files; running the full pipeline: ${error.message}`);
+            core.setOutput("run_quality_gate", "true");
+          }
+
     - uses: actions/checkout@v3
+      if: steps.scope.outputs.run_quality_gate == 'true'
 
     - name: Set up Python
+      if: steps.scope.outputs.run_quality_gate == 'true'
       uses: actions/setup-python@v4
       with:
         python-version: "3.11"
 
     - name: Install dependencies
+      if: steps.scope.outputs.run_quality_gate == 'true'
       run: |
         pip install -r requirements.txt
 
     - name: Run unit tests (BM25 + Tokenizer + HybridRetriever)
+      if: steps.scope.outputs.run_quality_gate == 'true'
       env:
         PYTHONPATH: src
       run: |
         pytest tests/test_bm25.py tests/test_tokenizer.py tests/test_hybrid_retriever.py tests/test_exact_match_boost_integration.py tests/test_retrieval_metrics.py tests/test_phase5_grid_search.py -v
 
   retrieval-gate:
-    needs: [changes, unit-test]
-    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.run_quality_gate == 'true') && needs.unit-test.result == 'success' }}
+    needs: unit-test
+    if: ${{ !cancelled() && needs.unit-test.outputs.run_quality_gate == 'true' && needs.unit-test.result == 'success' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -175,8 +173,8 @@ jobs:
           data/eval/phase4_hybrid_retrieval_report.json
 
   evaluate:
-    needs: [changes, retrieval-gate]
-    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.run_quality_gate == 'true') && needs.retrieval-gate.result == 'success' }}
+    needs: [unit-test, retrieval-gate]
+    if: ${{ !cancelled() && needs.unit-test.outputs.run_quality_gate == 'true' && needs.unit-test.result == 'success' && needs.retrieval-gate.result == 'success' }}
     runs-on: ubuntu-latest
 
     steps:
