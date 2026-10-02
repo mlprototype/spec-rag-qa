@@ -30,10 +30,92 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
+  changes:
+    name: Detect CI-relevant changes
+    runs-on: ubuntu-latest
+    outputs:
+      run_quality_gate: ${{ steps.scope.outputs.run_quality_gate }}
+    steps:
+      - name: Decide whether the Offline Agent pipeline is needed
+        id: scope
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const isDocumentation = (path) => {
+              const ciRelevantRoots = [".github/", "config/", "data/", "examples/", "fixtures/", "scripts/", "src/", "tests/"];
+              if (ciRelevantRoots.some((root) => path.startsWith(root)) || /^requirements.*\.txt$/i.test(path)) {
+                return false;
+              }
+              if (path.startsWith("docs/")) {
+                return /\.(md|mdx|rst|adoc|txt|png|jpe?g|gif|svg|webp|pdf|mmd)$/i.test(path);
+              }
+              if (/^(README\.md|LICENSE(?:\..*)?|COPYING(?:\..*)?|CONTRIBUTING.*|CODE_OF_CONDUCT.*|SECURITY.*|CHANGELOG.*)$/i.test(path)) {
+                return true;
+              }
+              return /\.(md|mdx|rst|adoc|txt)$/i.test(path);
+            };
+
+            let files;
+            try {
+              if (context.eventName === "workflow_dispatch") {
+                core.setOutput("run_quality_gate", "true");
+                return;
+              }
+
+              if (context.eventName === "pull_request") {
+                files = await github.paginate(github.rest.pulls.listFiles, {
+                  owner,
+                  repo,
+                  pull_number: context.issue.number,
+                  per_page: 100,
+                });
+              } else if (context.eventName === "push") {
+                const before = context.payload.before;
+                const after = context.sha;
+                if (!before || /^0+$/.test(before)) {
+                  core.setOutput("run_quality_gate", "true");
+                  return;
+                }
+                const comparison = await github.rest.repos.compareCommits({
+                  owner,
+                  repo,
+                  base: before,
+                  head: after,
+                  per_page: 100,
+                });
+                if (comparison.data.status !== "ahead") {
+                  core.setOutput("run_quality_gate", "true");
+                  return;
+                }
+                files = comparison.data.files ?? [];
+              } else {
+                core.setOutput("run_quality_gate", "true");
+                return;
+              }
+
+              // GitHub caps compare responses at 300 files and PR file listings at 3000.
+              const listingLimit = context.eventName === "pull_request" ? 3000 : 300;
+              if (files.length >= listingLimit) {
+                core.setOutput("run_quality_gate", "true");
+                return;
+              }
+
+              const runPipeline = files.some(({ filename }) => !isDocumentation(filename));
+              core.setOutput("run_quality_gate", String(runPipeline));
+              core.info(`Offline Agent pipeline required: ${runPipeline}`);
+            } catch (error) {
+              core.warning(`Could not determine changed files; running the full pipeline: ${error.message}`);
+              core.setOutput("run_quality_gate", "true");
+            }
+
   offline-agent-quality-gate:
     name: Offline Agent Quality Gate
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.run_quality_gate == 'true') }}
     runs-on: ubuntu-latest
 
     steps:
