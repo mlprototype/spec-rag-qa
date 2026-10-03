@@ -55,11 +55,14 @@ MASKはHTTP 200だけではPASSしません。`provider_input`またはresponse 
 - Overall Recall: 0.95以上
 - Overall Precision: 0.90以上
 - Overall FPR: 0.10以下
+- Overall Action Correctness: 1.00（ALLOW／WARN／MASK／BLOCKを含む）
 - BLOCK Action Correctness: 1.00
 - MASK Verification Accuracy: 1.00
 - MASK Evidence unavailable: 0
 
 合成Fixtureは契約回帰を検知する絶対Gateです。通常のAgent Baselineは参照・更新しません。
+
+Action mismatchは全件でGate違反とします。検知のOverall Recall 0.95という許容閾値は維持し、case FAIL件数を一律0にするGateは設けません。BLOCKの個別Gateは診断用に維持し、MASK Verificationはaction一致とは別にマスク内容を検証します。Category mismatchはcase FAILに記録されますが、現在はCategory一致の専用Gateを設けていません。
 
 ## 実行方法
 

@@ -92,3 +92,42 @@ def test_bm25_08_exact_match_boost():
     raw = store.search('409', top_k=2, boost_alpha=0.0, boost_beta=0.0)[0]['bm25_score']
     boosted = store.search('409', top_k=2, boost_alpha=1.0, boost_beta=0.0)[0]['bm25_score']
     assert boosted > raw, f'Boostが効いていない: raw={raw}, boosted={boosted}'
+
+
+@pytest.mark.parametrize("matching_count", [1, 2, 3])
+def test_matching_term_outranks_nonmatching_chunk(matching_count):
+    chunks = [Chunk("match.md", i, "パスワード") for i in range(matching_count)]
+    chunks.append(Chunk("noise.md", 0, "監査"))
+    store = BM25Store()
+    store.build(chunks)
+
+    hits = store.search("パスワード", len(chunks))
+
+    assert [h["chunk_idx"] for h in hits[:-1]] == list(range(matching_count))
+    assert all(h["bm25_score"] > 0 for h in hits[:-1])
+    assert hits[-1]["chunk_idx"] == matching_count
+    assert hits[-1]["bm25_score"] == 0
+
+
+def test_unknown_term_scores_zero_and_returns_stable_ranking():
+    store = BM25Store()
+    store.build([Chunk("a.md", 0, "パスワード"), Chunk("b.md", 0, "監査")])
+    hits = store.search("未定義の識別子XYZ", 2)
+    assert [h["chunk_idx"] for h in hits] == [0, 1]
+    assert all(h["bm25_score"] == 0 for h in hits)
+
+
+@pytest.mark.parametrize("query", ["パスワード", "/api/user_id", "409", "未知XYZ"])
+def test_save_load_preserves_ranking_and_scores(tmp_path, query):
+    store = BM25Store(b=0.6, k1=1.5)
+    store.build([
+        Chunk("a.md", 0, "パスワード /api/user_id 409"),
+        Chunk("b.md", 0, "パスワード /api/user_id"),
+        Chunk("c.md", 0, "監査 USER_ID"),
+    ])
+    index = tmp_path / "bm25_index.jsonl"
+    postings = tmp_path / "bm25_postings.jsonl"
+    store.save(index, postings)
+    restored = BM25Store.load(index, postings)
+
+    assert restored.search(query, 3, 1.5, 2.0) == store.search(query, 3, 1.5, 2.0)

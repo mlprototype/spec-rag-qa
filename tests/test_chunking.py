@@ -1,13 +1,46 @@
-import pytest
-from ragqa.chunking import markdown_header_chunks, Chunk
+from pathlib import Path
 
-def test_markdown_header_chunks_unused_min_size():
-    # 1. 使われていない引数の露呈 (Dead Code)
-    # min_chunk_size=50 だが、中身で適用されていないため小さなチャンクが生成されてしまうはず。
-    text = "# A\nB"
+import pytest
+from ragqa.chunking import markdown_header_chunks
+
+def test_markdown_header_chunks_preserves_short_final_section():
+    text = "# 入力\nemailは必須"
     chunks = markdown_header_chunks("doc1", text, min_chunk_size=50)
-    for chunk in chunks:
-        assert len(chunk.text) >= 50, f"Chunk size {len(chunk.text)} is less than min_chunk_size(50). The argument is ignored!"
+    assert len(chunks) == 1
+    assert chunks[0].text == text
+
+
+def test_markdown_header_chunks_merges_short_sections_without_content_loss():
+    text = "導入\n# 入力\nemail必須\n## 制約\npasswordは8文字以上\n## エラー\n重複時409"
+    chunks = markdown_header_chunks("doc1", text, min_chunk_size=50)
+    assert chunks
+    assert chunks[0].text.startswith("導入\n# 入力\nemail必須\n## 制約")
+    indexed_content = "".join("".join(c.text.split()) for c in chunks)
+    assert indexed_content == "".join(text.split())
+    assert [c.chunk_id for c in chunks] == list(range(len(chunks)))
+    assert all(c.doc_id == "doc1" for c in chunks)
+
+
+def test_markdown_header_chunks_preserves_short_tail_after_long_section():
+    text = "# 長い節\n" + "本文。" * 30 + "\n## 必須条件\nUSER_IDを記録する"
+    chunks = markdown_header_chunks("doc1", text)
+    assert len(chunks) == 2
+    assert chunks[1].text == "## 必須条件\nUSER_IDを記録する"
+    assert [c.chunk_id for c in chunks] == [0, 1]
+
+
+@pytest.mark.parametrize("text", ["", "\n\r\n\n", " \t\n \r\n"])
+def test_markdown_header_chunks_whitespace_only(text):
+    assert markdown_header_chunks("doc1", text) == []
+
+
+def test_sample_spec_input_conditions_are_indexed():
+    path = Path(__file__).resolve().parents[1] / "data/docs/sample_spec.md"
+    text = path.read_text(encoding="utf-8")
+    chunks = markdown_header_chunks("sample_spec.md", text)
+    indexed = "\n".join(c.text for c in chunks)
+    assert "## 入力\n- email（必須）\n- password（8文字以上）" in indexed
+    assert "".join(indexed.split()) == "".join(text.split())
 
 def test_markdown_header_chunks_codeblock_comment():
     # 2. コードブロック内のコメントによる誤爆

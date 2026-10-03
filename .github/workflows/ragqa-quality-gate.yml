@@ -105,12 +105,12 @@ jobs:
       run: |
         pip install -r requirements.txt
 
-    - name: Run unit tests (BM25 + Tokenizer + HybridRetriever)
+    - name: Run unit tests (Retrieval + QA runtime)
       if: steps.scope.outputs.run_quality_gate == 'true'
       env:
         PYTHONPATH: src
       run: |
-        pytest tests/test_bm25.py tests/test_tokenizer.py tests/test_hybrid_retriever.py tests/test_exact_match_boost_integration.py tests/test_retrieval_metrics.py tests/test_phase5_grid_search.py -v
+        pytest tests/test_bm25.py tests/test_tokenizer.py tests/test_hybrid_retriever.py tests/test_exact_match_boost_integration.py tests/test_retrieval_metrics.py tests/test_phase5_grid_search.py tests/test_chunking.py tests/test_server.py tests/test_ask.py -v
 
   retrieval-gate:
     needs: unit-test
